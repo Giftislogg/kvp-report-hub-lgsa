@@ -54,13 +54,20 @@ interface Post {
   timestamp: string;
 }
 
+interface UserSuggestion {
+  username: string;
+  last_seen: string;
+}
+
 const AdminPanel: React.FC = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [publicMessages, setPublicMessages] = useState<PublicMessage[]>([]);
   const [privateMessages, setPrivateMessages] = useState<PrivateMessage[]>([]);
   const [adminMessages, setAdminMessages] = useState<AdminMessage[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [reportReplies, setReportReplies] = useState<AdminMessage[]>([]);
   const [adminResponse, setAdminResponse] = useState('');
   const [player1, setPlayer1] = useState('');
   const [player2, setPlayer2] = useState('');
@@ -72,7 +79,111 @@ const AdminPanel: React.FC = () => {
 
   useEffect(() => {
     fetchAllData();
-  }, []);
+    fetchUserSuggestions();
+
+    // Subscribe to real-time updates for admin messages (user replies)
+    const messagesChannel = supabase
+      .channel('admin-messages-updates')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'admin_messages'
+      }, (payload) => {
+        console.log('Admin message update:', payload);
+        if (payload.eventType === 'INSERT') {
+          const newMessage = payload.new as AdminMessage;
+          // If it's a user reply and we have a selected report for this user
+          if (newMessage.sender_type === 'user' && selectedReport && newMessage.guest_name === selectedReport.guest_name) {
+            setReportReplies(prev => [...prev, newMessage]);
+            toast.success(`New reply from ${newMessage.guest_name}`);
+          }
+        }
+        fetchAllData(); // Refresh all data to keep everything in sync
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(messagesChannel);
+    };
+  }, [selectedReport]);
+
+  // Fetch replies for the selected report
+  useEffect(() => {
+    if (selectedReport) {
+      fetchReportReplies(selectedReport.guest_name);
+    } else {
+      setReportReplies([]);
+    }
+  }, [selectedReport]);
+
+  const fetchReportReplies = async (guestName: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_messages')
+        .select('*')
+        .eq('guest_name', guestName)
+        .order('timestamp', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching report replies:', error);
+        return;
+      }
+
+      setReportReplies(data || []);
+    } catch (error) {
+      console.error('Unexpected error fetching report replies:', error);
+    }
+  };
+
+  const fetchUserSuggestions = async () => {
+    try {
+      // Get unique usernames from various tables to suggest friends
+      const [publicChatUsers, privateChatUsers, reportsUsers] = await Promise.all([
+        supabase.from('public_chat').select('sender_name').order('timestamp', { ascending: false }).limit(50),
+        supabase.from('private_chats').select('sender_name, receiver_name').order('timestamp', { ascending: false }).limit(50),
+        supabase.from('reports').select('guest_name').order('timestamp', { ascending: false }).limit(50)
+      ]);
+
+      const allUsers = new Set<string>();
+      
+      // Add users from public chat
+      publicChatUsers.data?.forEach(user => {
+        if (user.sender_name) {
+          allUsers.add(user.sender_name);
+        }
+      });
+
+      // Add users from private chats
+      privateChatUsers.data?.forEach(chat => {
+        if (chat.sender_name) {
+          allUsers.add(chat.sender_name);
+        }
+        if (chat.receiver_name) {
+          allUsers.add(chat.receiver_name);
+        }
+      });
+
+      // Add users from reports
+      reportsUsers.data?.forEach(report => {
+        if (report.guest_name) {
+          allUsers.add(report.guest_name);
+        }
+      });
+
+      const suggestions = Array.from(allUsers)
+        .slice(0, 10)
+        .map(user => ({ username: user, last_seen: 'Recently active' }));
+
+      setUserSuggestions(suggestions);
+    } catch (error) {
+      console.error('Error fetching user suggestions:', error);
+    }
+  };
+
+  const removeSuggestion = (username: string) => {
+    setUserSuggestions(prev => prev.filter(suggestion => suggestion.username !== username));
+    toast.success("Suggestion removed");
+  };
 
   const fetchAllData = async () => {
     try {
@@ -128,7 +239,6 @@ const AdminPanel: React.FC = () => {
 
       toast.success("Report response saved");
       setAdminResponse('');
-      setSelectedReport(null);
       fetchAllData();
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -381,7 +491,7 @@ const AdminPanel: React.FC = () => {
                         <p className="text-xs text-muted-foreground">
                           {formatTime(report.timestamp)}
                         </p>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <Button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -389,7 +499,7 @@ const AdminPanel: React.FC = () => {
                             }}
                             variant="outline"
                             size="sm"
-                            className="text-blue-600 hover:text-blue-700"
+                            className="text-xs px-2 py-1 h-auto"
                           >
                             <CheckCircle className="w-3 h-3 mr-1" />
                             Close
@@ -401,7 +511,7 @@ const AdminPanel: React.FC = () => {
                             }}
                             variant="outline"
                             size="sm"
-                            className="text-red-600 hover:text-red-700"
+                            className="text-xs px-2 py-1 h-auto text-red-600 hover:text-red-700"
                           >
                             <Trash2 className="w-3 h-3 mr-1" />
                             Delete
@@ -418,7 +528,7 @@ const AdminPanel: React.FC = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>Report Details</span>
+                    <span>Report Details & Conversation</span>
                     {selectedReport.status === 'closed' ? (
                       <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
                     ) : (
@@ -452,20 +562,39 @@ const AdminPanel: React.FC = () => {
                   <div>
                     <strong>Submitted:</strong> {formatTime(selectedReport.timestamp)}
                   </div>
-                  
-                  {selectedReport.admin_response && (
-                    <div>
-                      <strong>Previous Response:</strong>
-                      <p className="mt-1 text-sm bg-primary/10 p-2 rounded">
-                        {selectedReport.admin_response}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Responded: {formatTime(selectedReport.admin_response_timestamp!)}
-                      </p>
-                    </div>
-                  )}
 
-                  <form onSubmit={handleRespondToReport} className="space-y-4">
+                  {/* Conversation thread */}
+                  <div className="border-t pt-4">
+                    <strong className="block mb-3">Conversation:</strong>
+                    <div className="h-64 overflow-y-auto border rounded p-4 bg-muted/50 space-y-3">
+                      {reportReplies.length === 0 ? (
+                        <p className="text-muted-foreground text-center">No conversation yet</p>
+                      ) : (
+                        reportReplies.map((reply) => (
+                          <div key={reply.id} className={`flex ${reply.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
+                              reply.sender_type === 'admin' 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'bg-blue-100 text-blue-900 border'
+                            }`}>
+                              <div className="flex items-baseline gap-2 mb-1">
+                                <span className="font-semibold text-xs">
+                                  {reply.sender_type === 'admin' ? 'Admin' : reply.guest_name}
+                                </span>
+                                <span className="text-xs opacity-70">
+                                  {formatTime(reply.timestamp)}
+                                </span>
+                              </div>
+                              <div className="text-sm">{reply.message}</div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Admin response form */}
+                  <form onSubmit={handleRespondToReport} className="space-y-4 border-t pt-4">
                     <Textarea
                       value={adminResponse}
                       onChange={(e) => setAdminResponse(e.target.value)}
@@ -575,32 +704,66 @@ const AdminPanel: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="moderation">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserX className="w-5 h-5" />
-                User Moderation
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  placeholder="Username to mute"
-                  value={muteUsername}
-                  onChange={(e) => setMuteUsername(e.target.value)}
-                />
-                <Input
-                  placeholder="Reason (optional)"
-                  value={muteReason}
-                  onChange={(e) => setMuteReason(e.target.value)}
-                />
-              </div>
-              <Button onClick={muteUser} className="w-full">
-                <UserX className="w-4 h-4 mr-2" />
-                Mute User from Public Chat
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserX className="w-5 h-5" />
+                  User Moderation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    placeholder="Username to mute"
+                    value={muteUsername}
+                    onChange={(e) => setMuteUsername(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Reason (optional)"
+                    value={muteReason}
+                    onChange={(e) => setMuteReason(e.target.value)}
+                  />
+                </div>
+                <Button onClick={muteUser} className="w-full">
+                  <UserX className="w-4 h-4 mr-2" />
+                  Mute User from Public Chat
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>User Suggestions ({userSuggestions.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {userSuggestions.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">
+                      No user suggestions available
+                    </p>
+                  ) : (
+                    userSuggestions.map((user) => (
+                      <div key={user.username} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-semibold">{user.username}</p>
+                          <p className="text-xs text-gray-500">{user.last_seen}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => removeSuggestion(user.username)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="messages">
