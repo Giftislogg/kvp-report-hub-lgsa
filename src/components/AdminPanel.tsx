@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Archive, UserX, Megaphone } from "lucide-react";
+import { Trash2, Archive, UserX, Megaphone, X } from "lucide-react";
 
 interface Report {
   id: string;
@@ -159,6 +159,32 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  const deleteReport = async (reportId: string) => {
+    if (!confirm('Are you sure you want to delete this report? This action cannot be undone.')) return;
+
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .delete()
+        .eq('id', reportId);
+
+      if (error) {
+        console.error('Error deleting report:', error);
+        toast.error("Failed to delete report");
+        return;
+      }
+
+      toast.success("Report deleted");
+      if (selectedReport?.id === reportId) {
+        setSelectedReport(null);
+      }
+      fetchAllData();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error("An unexpected error occurred");
+    }
+  };
+
   const deletePublicMessage = async (messageId: string) => {
     if (!confirm('Are you sure you want to delete this message?')) return;
 
@@ -240,8 +266,7 @@ const AdminPanel: React.FC = () => {
     if (!selectedGuest || !newAdminMessage.trim()) return;
 
     try {
-      // Send admin message
-      const { error: messageError } = await supabase
+      const { error } = await supabase
         .from('admin_messages')
         .insert({
           guest_name: selectedGuest,
@@ -249,24 +274,10 @@ const AdminPanel: React.FC = () => {
           sender_type: 'admin'
         });
 
-      if (messageError) {
-        console.error('Error sending admin message:', messageError);
+      if (error) {
+        console.error('Error sending admin message:', error);
         toast.error("Failed to send message");
         return;
-      }
-
-      // Create notification
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          to_user: selectedGuest,
-          from_user: 'Admin',
-          type: 'admin_message',
-          message: newAdminMessage.trim()
-        });
-
-      if (notificationError) {
-        console.error('Error creating notification:', notificationError);
       }
 
       toast.success("Message sent to user");
@@ -370,18 +381,32 @@ const AdminPanel: React.FC = () => {
                         <p className="text-xs text-muted-foreground">
                           {formatTime(report.timestamp)}
                         </p>
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            closeReport(report.id);
-                          }}
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Archive className="w-3 h-3 mr-1" />
-                          Close
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              closeReport(report.id);
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            <Archive className="w-3 h-3 mr-1" />
+                            Close
+                          </Button>
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteReport(report.id);
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <X className="w-3 h-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -455,10 +480,19 @@ const AdminPanel: React.FC = () => {
                         type="button"
                         onClick={() => closeReport(selectedReport.id)}
                         variant="outline"
-                        className="text-red-600 hover:text-red-700"
+                        className="text-blue-600 hover:text-blue-700"
                       >
                         <Archive className="w-4 h-4 mr-1" />
-                        Close Report
+                        Close
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => deleteReport(selectedReport.id)}
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Delete
                       </Button>
                     </div>
                   </form>

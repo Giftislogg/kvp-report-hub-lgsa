@@ -20,6 +20,7 @@ interface Friend {
   status: 'pending' | 'accepted' | 'declined';
   requested_by: string;
   created_at: string;
+  updated_at?: string;
 }
 
 interface AdminMessage {
@@ -30,18 +31,26 @@ interface AdminMessage {
   timestamp: string;
 }
 
+interface UserSuggestion {
+  username: string;
+  last_seen: string;
+}
+
 const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavigate }) => {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<Friend[]>([]);
   const [adminMessages, setAdminMessages] = useState<AdminMessage[]>([]);
+  const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [newFriendUsername, setNewFriendUsername] = useState('');
   const [newMessage, setNewMessage] = useState('');
+  const [canReplyToAdmin, setCanReplyToAdmin] = useState(false);
 
   useEffect(() => {
     fetchFriends();
     fetchFriendRequests();
     fetchAdminMessages();
+    fetchUserSuggestions();
     
     // Subscribe to friends updates
     const friendsChannel = supabase
@@ -49,8 +58,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
-        table: 'friends',
-        filter: `user1=eq.${username},user2=eq.${username}`
+        table: 'friends'
       }, () => {
         fetchFriends();
         fetchFriendRequests();
@@ -90,7 +98,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         return;
       }
 
-      setFriends(data || []);
+      setFriends((data as Friend[]) || []);
     } catch (error) {
       console.error('Unexpected error:', error);
     }
@@ -110,7 +118,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         return;
       }
 
-      setFriendRequests(data || []);
+      setFriendRequests((data as Friend[]) || []);
     } catch (error) {
       console.error('Unexpected error:', error);
     }
@@ -129,36 +137,89 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         return;
       }
 
-      setAdminMessages(data || []);
+      const messages = (data as AdminMessage[]) || [];
+      setAdminMessages(messages);
+      
+      // Check if admin has sent any messages to allow replies
+      const hasAdminMessage = messages.some(msg => msg.sender_type === 'admin');
+      setCanReplyToAdmin(hasAdminMessage);
     } catch (error) {
       console.error('Unexpected error:', error);
     }
   };
 
+  const fetchUserSuggestions = async () => {
+    try {
+      // Get unique usernames from various tables to suggest friends
+      const [publicChatUsers, privateChatUsers, reportsUsers] = await Promise.all([
+        supabase.from('public_chat').select('sender_name').order('timestamp', { ascending: false }).limit(50),
+        supabase.from('private_chats').select('sender_name, receiver_name').order('timestamp', { ascending: false }).limit(50),
+        supabase.from('reports').select('guest_name').order('timestamp', { ascending: false }).limit(50)
+      ]);
+
+      const allUsers = new Set<string>();
+      
+      // Add users from public chat
+      publicChatUsers.data?.forEach(user => {
+        if (user.sender_name && user.sender_name !== username) {
+          allUsers.add(user.sender_name);
+        }
+      });
+
+      // Add users from private chats
+      privateChatUsers.data?.forEach(chat => {
+        if (chat.sender_name && chat.sender_name !== username) {
+          allUsers.add(chat.sender_name);
+        }
+        if (chat.receiver_name && chat.receiver_name !== username) {
+          allUsers.add(chat.receiver_name);
+        }
+      });
+
+      // Add users from reports
+      reportsUsers.data?.forEach(report => {
+        if (report.guest_name && report.guest_name !== username) {
+          allUsers.add(report.guest_name);
+        }
+      });
+
+      // Get existing friends and pending requests to exclude them
+      const { data: existingConnections } = await supabase
+        .from('friends')
+        .select('user1, user2')
+        .or(`user1.eq.${username},user2.eq.${username}`);
+
+      const connectedUsers = new Set<string>();
+      existingConnections?.forEach(conn => {
+        connectedUsers.add(conn.user1 === username ? conn.user2 : conn.user1);
+      });
+
+      // Filter out already connected users
+      const suggestions = Array.from(allUsers)
+        .filter(user => !connectedUsers.has(user))
+        .slice(0, 10)
+        .map(user => ({ username: user, last_seen: 'Recently active' }));
+
+      setUserSuggestions(suggestions);
+    } catch (error) {
+      console.error('Error fetching user suggestions:', error);
+    }
+  };
+
   const handleRefresh = async () => {
     setIsLoading(true);
-    await Promise.all([fetchFriends(), fetchFriendRequests(), fetchAdminMessages()]);
+    await Promise.all([fetchFriends(), fetchFriendRequests(), fetchAdminMessages(), fetchUserSuggestions()]);
     setIsLoading(false);
     toast.success("Refreshed!");
   };
 
-  const sendFriendRequest = async () => {
-    if (!newFriendUsername.trim()) {
-      toast.error("Please enter a username");
-      return;
-    }
-
-    if (newFriendUsername === username) {
-      toast.error("You cannot send a friend request to yourself");
-      return;
-    }
-
+  const sendFriendRequest = async (targetUsername: string) => {
     try {
       // Check if friendship already exists
       const { data: existingFriend } = await supabase
         .from('friends')
         .select('*')
-        .or(`and(user1.eq.${username},user2.eq.${newFriendUsername}),and(user1.eq.${newFriendUsername},user2.eq.${username})`)
+        .or(`and(user1.eq.${username},user2.eq.${targetUsername}),and(user1.eq.${targetUsername},user2.eq.${username})`)
         .single();
 
       if (existingFriend) {
@@ -170,7 +231,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         .from('friends')
         .insert({
           user1: username,
-          user2: newFriendUsername,
+          user2: targetUsername,
           requested_by: username,
           status: 'pending'
         });
@@ -181,8 +242,8 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         return;
       }
 
-      toast.success(`Friend request sent to ${newFriendUsername}`);
-      setNewFriendUsername('');
+      toast.success(`Friend request sent to ${targetUsername}`);
+      fetchUserSuggestions(); // Refresh suggestions
     } catch (error) {
       console.error('Error sending friend request:', error);
       toast.error("Failed to send friend request");
@@ -209,6 +270,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
       
       fetchFriends();
       fetchFriendRequests();
+      fetchUserSuggestions();
     } catch (error) {
       console.error('Error handling friend request:', error);
       toast.error("Failed to handle friend request");
@@ -218,6 +280,11 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
   const sendMessageToAdmin = async () => {
     if (!newMessage.trim()) {
       toast.error("Please enter a message");
+      return;
+    }
+
+    if (!canReplyToAdmin) {
+      toast.error("You can only reply after admin has sent you a message");
       return;
     }
 
@@ -236,7 +303,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         return;
       }
 
-      toast.success("Message sent to admin");
+      toast.success("Reply sent to admin");
       setNewMessage('');
       fetchAdminMessages();
     } catch (error) {
@@ -269,26 +336,38 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
           </Button>
         </div>
 
-        {/* Send Friend Request */}
+        {/* User Suggestions */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserPlus className="w-5 h-5" />
-              Send Friend Request
+              <Users className="w-5 h-5" />
+              Suggested Friends ({userSuggestions.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter username"
-                value={newFriendUsername}
-                onChange={(e) => setNewFriendUsername(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendFriendRequest()}
-              />
-              <Button onClick={sendFriendRequest}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                Send Request
-              </Button>
+            <div className="space-y-2">
+              {userSuggestions.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  No friend suggestions available
+                </p>
+              ) : (
+                userSuggestions.map((user) => (
+                  <div key={user.username} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-semibold">{user.username}</p>
+                      <p className="text-xs text-gray-500">{user.last_seen}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => sendFriendRequest(user.username)}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Add Friend
+                    </Button>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -347,7 +426,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
             <div className="space-y-2">
               {friends.length === 0 ? (
                 <p className="text-muted-foreground text-center py-4">
-                  No friends yet. Send some friend requests!
+                  No friends yet. Add some from the suggestions above!
                 </p>
               ) : (
                 friends.map((friend) => (
@@ -376,19 +455,29 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Send Message to Admin */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Type your message to admin..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessageToAdmin()}
-                />
-                <Button onClick={sendMessageToAdmin}>
-                  <Send className="w-4 h-4 mr-2" />
-                  Send
-                </Button>
-              </div>
+              {/* Reply to Admin (only if admin has messaged first) */}
+              {canReplyToAdmin && (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Reply to admin..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && sendMessageToAdmin()}
+                  />
+                  <Button onClick={sendMessageToAdmin}>
+                    <Send className="w-4 h-4 mr-2" />
+                    Reply
+                  </Button>
+                </div>
+              )}
+
+              {!canReplyToAdmin && (
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    You can reply to admin messages once they contact you first
+                  </p>
+                </div>
+              )}
 
               {/* Messages History */}
               <div className="space-y-3 max-h-96 overflow-y-auto">
