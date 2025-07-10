@@ -70,9 +70,16 @@ const Index = () => {
   const handleAuthSubmit = async (inputUsername: string, password: string, isNewUser: boolean) => {
     try {
       if (isNewUser) {
-        // Store user credentials
+        // Check if username already exists
+        const existingUser = localStorage.getItem(`user_${inputUsername}`);
+        if (existingUser) {
+          toast.error("Username already exists. Please choose a different one or login instead.");
+          return;
+        }
+
+        // Store user credentials with unique key
         const userData = { username: inputUsername, password };
-        localStorage.setItem('userCredentials', JSON.stringify(userData));
+        localStorage.setItem(`user_${inputUsername}`, JSON.stringify(userData));
         localStorage.setItem('username', inputUsername);
         
         setUsername(inputUsername);
@@ -80,20 +87,20 @@ const Index = () => {
         toast.success("Account created successfully!");
       } else {
         // Verify existing user
-        const storedData = localStorage.getItem('userCredentials');
+        const storedData = localStorage.getItem(`user_${inputUsername}`);
         if (storedData) {
-          const { username: storedUsername, password: storedPassword } = JSON.parse(storedData);
-          if (storedUsername === inputUsername && storedPassword === password) {
+          const { password: storedPassword } = JSON.parse(storedData);
+          if (storedPassword === password) {
             localStorage.setItem('username', inputUsername);
             setUsername(inputUsername);
             setShowAuthModal(false);
             toast.success("Logged in successfully!");
           } else {
-            toast.error("Invalid credentials");
+            toast.error("Invalid password");
             return;
           }
         } else {
-          toast.error("No account found. Please create an account first.");
+          toast.error("No account found with this username. Please create an account first.");
           return;
         }
       }
@@ -125,7 +132,6 @@ const Index = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('username');
-    localStorage.removeItem('userCredentials');
     setUsername(null);
     setCurrentPage('home');
     toast.success("Logged out successfully");
@@ -138,7 +144,7 @@ const Index = () => {
 
     switch (currentPage) {
       case 'home':
-        return <HomePage onNavigate={handleNavigate} />;
+        return <HomePage onNavigate={handleNavigate} username={username || undefined} />;
       case 'report':
         return <ReportForm guestName={username!} />;
       case 'public-chat':
@@ -154,7 +160,7 @@ const Index = () => {
       case 'admin':
         return <AdminPanel />;
       default:
-        return <HomePage onNavigate={handleNavigate} />;
+        return <HomePage onNavigate={handleNavigate} username={username || undefined} />;
     }
   };
 

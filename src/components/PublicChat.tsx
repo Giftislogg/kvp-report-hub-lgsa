@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Trash2, Users } from "lucide-react";
+import { Send, Trash2, Users, RefreshCw } from "lucide-react";
 
 interface Message {
   id: string;
@@ -23,13 +23,15 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchMessages();
+    checkMuteStatus();
     
-    // Subscribe to new messages
+    // Subscribe to new messages for real-time updates
     const channel = supabase
       .channel('public_chat_changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'public_chat' }, (payload) => {
@@ -55,6 +57,22 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const checkMuteStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('muted_users')
+        .select('*')
+        .eq('username', guestName)
+        .single();
+
+      if (data) {
+        setIsMuted(true);
+      }
+    } catch (error) {
+      // User is not muted, which is fine
+    }
+  };
+
   const fetchMessages = async () => {
     try {
       const { data, error } = await supabase
@@ -77,9 +95,16 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchMessages();
+    setRefreshing(false);
+    toast.success("Chat refreshed!");
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || isMuted) return;
 
     try {
       const { error } = await supabase
@@ -96,26 +121,6 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
       }
 
       setNewMessage('');
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      toast.error("An unexpected error occurred");
-    }
-  };
-
-  const deleteMessage = async (messageId: string) => {
-    try {
-      const { error } = await supabase
-        .from('public_chat')
-        .delete()
-        .eq('id', messageId);
-
-      if (error) {
-        console.error('Error deleting message:', error);
-        toast.error("Failed to delete message");
-        return;
-      }
-
-      toast.success("Message deleted");
     } catch (error) {
       console.error('Unexpected error:', error);
       toast.error("An unexpected error occurred");
@@ -173,12 +178,19 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               Connected as {guestName}
+              {isMuted && <span className="text-red-500 ml-2">(Muted)</span>}
             </p>
           </div>
           <div className="flex gap-2">
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              {messages.length} messages
-            </Badge>
+            <Button
+              onClick={handleRefresh}
+              variant="outline"
+              size="sm"
+              disabled={refreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
             <Button
               onClick={clearChatHistory}
               variant="outline"
@@ -216,17 +228,6 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
                       {formatTime(message.timestamp)}
                     </div>
                   </div>
-                  {/* Admin delete button */}
-                  {isAdmin && (
-                    <Button
-                      onClick={() => deleteMessage(message.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
                 </div>
               </div>
             ))}
@@ -239,11 +240,12 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
+                placeholder={isMuted ? "You are muted and cannot send messages" : "Type your message..."}
                 className="flex-1"
                 maxLength={500}
+                disabled={isMuted}
               />
-              <Button type="submit" className="px-6">
+              <Button type="submit" className="px-6" disabled={isMuted}>
                 <Send className="w-4 h-4" />
               </Button>
             </form>

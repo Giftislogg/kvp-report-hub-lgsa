@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_chats: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          user1: string
+          user2: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          user1: string
+          user2: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          user1?: string
+          user2?: string
+        }
+        Relationships: []
+      }
       admin_messages: {
         Row: {
           guest_name: string
@@ -35,6 +59,116 @@ export type Database = {
           message?: string
           sender_type?: string
           timestamp?: string
+        }
+        Relationships: []
+      }
+      muted_users: {
+        Row: {
+          id: string
+          muted_by: string
+          reason: string | null
+          timestamp: string
+          username: string
+        }
+        Insert: {
+          id?: string
+          muted_by: string
+          reason?: string | null
+          timestamp?: string
+          username: string
+        }
+        Update: {
+          id?: string
+          muted_by?: string
+          reason?: string | null
+          timestamp?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          from_user: string
+          id: string
+          message: string
+          read: boolean
+          timestamp: string
+          to_user: string
+          type: string
+        }
+        Insert: {
+          from_user: string
+          id?: string
+          message: string
+          read?: boolean
+          timestamp?: string
+          to_user: string
+          type: string
+        }
+        Update: {
+          from_user?: string
+          id?: string
+          message?: string
+          read?: boolean
+          timestamp?: string
+          to_user?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      post_likes: {
+        Row: {
+          id: string
+          post_id: string
+          timestamp: string
+          user_name: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          timestamp?: string
+          user_name: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          timestamp?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_name: string
+          content: string
+          id: string
+          likes: number
+          timestamp: string
+          title: string
+        }
+        Insert: {
+          author_name: string
+          content: string
+          id?: string
+          likes?: number
+          timestamp?: string
+          title: string
+        }
+        Update: {
+          author_name?: string
+          content?: string
+          id?: string
+          likes?: number
+          timestamp?: string
+          title?: string
         }
         Relationships: []
       }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { MessageSquare, Users, Bell } from "lucide-react";
+import { MessageSquare, Users, Bell, RefreshCw } from "lucide-react";
 
 interface NotificationsPageProps {
   username: string;
@@ -24,6 +24,7 @@ interface Notification {
 const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavigate }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [activeChats, setActiveChats] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
@@ -88,6 +89,13 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
     }
   };
 
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    await Promise.all([fetchNotifications(), fetchActiveChats()]);
+    setIsLoading(false);
+    toast.success("Refreshed!");
+  };
+
   const markAsRead = async (notificationId: string) => {
     try {
       await supabase
@@ -141,6 +149,19 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
   return (
     <div className="container mx-auto p-4 pb-20">
       <div className="space-y-6">
+        {/* Refresh Button */}
+        <div className="flex justify-end">
+          <Button 
+            onClick={handleRefresh} 
+            disabled={isLoading}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+
         {/* Active Chats */}
         {activeChats.length > 0 && (
           <Card>

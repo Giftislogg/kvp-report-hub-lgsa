@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Archive, CheckCircle, AlertCircle } from "lucide-react";
+import { Trash2, Archive, UserX, Megaphone } from "lucide-react";
 
 interface Report {
   id: string;
@@ -45,17 +45,29 @@ interface AdminMessage {
   timestamp: string;
 }
 
+interface Post {
+  id: string;
+  author_name: string;
+  title: string;
+  content: string;
+  likes: number;
+  timestamp: string;
+}
+
 const AdminPanel: React.FC = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [publicMessages, setPublicMessages] = useState<PublicMessage[]>([]);
   const [privateMessages, setPrivateMessages] = useState<PrivateMessage[]>([]);
   const [adminMessages, setAdminMessages] = useState<AdminMessage[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [adminResponse, setAdminResponse] = useState('');
   const [player1, setPlayer1] = useState('');
   const [player2, setPlayer2] = useState('');
   const [selectedGuest, setSelectedGuest] = useState('');
   const [newAdminMessage, setNewAdminMessage] = useState('');
+  const [muteUsername, setMuteUsername] = useState('');
+  const [muteReason, setMuteReason] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -64,11 +76,12 @@ const AdminPanel: React.FC = () => {
 
   const fetchAllData = async () => {
     try {
-      const [reportsRes, publicRes, privateRes, adminRes] = await Promise.all([
+      const [reportsRes, publicRes, privateRes, adminRes, postsRes] = await Promise.all([
         supabase.from('reports').select('*').order('timestamp', { ascending: false }),
         supabase.from('public_chat').select('*').order('timestamp', { ascending: false }),
         supabase.from('private_chats').select('*').order('timestamp', { ascending: false }),
-        supabase.from('admin_messages').select('*').order('timestamp', { ascending: false })
+        supabase.from('admin_messages').select('*').order('timestamp', { ascending: false }),
+        supabase.from('posts').select('*').order('timestamp', { ascending: false })
       ]);
 
       if (reportsRes.error) console.error('Reports error:', reportsRes.error);
@@ -82,6 +95,9 @@ const AdminPanel: React.FC = () => {
 
       if (adminRes.error) console.error('Admin messages error:', adminRes.error);
       else setAdminMessages(adminRes.data || []);
+
+      if (postsRes.error) console.error('Posts error:', postsRes.error);
+      else setPosts(postsRes.data || []);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -166,23 +182,53 @@ const AdminPanel: React.FC = () => {
     }
   };
 
-  const deletePrivateMessage = async (messageId: string) => {
-    if (!confirm('Are you sure you want to delete this private message?')) return;
+  const deletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
 
     try {
       const { error } = await supabase
-        .from('private_chats')
+        .from('posts')
         .delete()
-        .eq('id', messageId);
+        .eq('id', postId);
 
       if (error) {
-        console.error('Error deleting message:', error);
-        toast.error("Failed to delete message");
+        console.error('Error deleting post:', error);
+        toast.error("Failed to delete post");
         return;
       }
 
-      toast.success("Private message deleted");
+      toast.success("Post deleted");
       fetchAllData();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error("An unexpected error occurred");
+    }
+  };
+
+  const muteUser = async () => {
+    if (!muteUsername.trim()) {
+      toast.error("Please enter a username to mute");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('muted_users')
+        .insert({
+          username: muteUsername.trim(),
+          muted_by: 'admin',
+          reason: muteReason.trim() || 'No reason provided'
+        });
+
+      if (error) {
+        console.error('Error muting user:', error);
+        toast.error("Failed to mute user");
+        return;
+      }
+
+      toast.success(`User ${muteUsername} has been muted`);
+      setMuteUsername('');
+      setMuteReason('');
     } catch (error) {
       console.error('Unexpected error:', error);
       toast.error("An unexpected error occurred");
@@ -194,7 +240,8 @@ const AdminPanel: React.FC = () => {
     if (!selectedGuest || !newAdminMessage.trim()) return;
 
     try {
-      const { error } = await supabase
+      // Send admin message
+      const { error: messageError } = await supabase
         .from('admin_messages')
         .insert({
           guest_name: selectedGuest,
@@ -202,10 +249,24 @@ const AdminPanel: React.FC = () => {
           sender_type: 'admin'
         });
 
-      if (error) {
-        console.error('Error sending admin message:', error);
+      if (messageError) {
+        console.error('Error sending admin message:', messageError);
         toast.error("Failed to send message");
         return;
+      }
+
+      // Create notification
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          to_user: selectedGuest,
+          from_user: 'Admin',
+          type: 'admin_message',
+          message: newAdminMessage.trim()
+        });
+
+      if (notificationError) {
+        console.error('Error creating notification:', notificationError);
       }
 
       toast.success("Message sent to user");
@@ -215,14 +276,6 @@ const AdminPanel: React.FC = () => {
       console.error('Unexpected error:', error);
       toast.error("An unexpected error occurred");
     }
-  };
-
-  const getPrivateChat = () => {
-    if (!player1 || !player2) return [];
-    return privateMessages.filter(msg => 
-      (msg.sender_name === player1 && msg.receiver_name === player2) ||
-      (msg.sender_name === player2 && msg.receiver_name === player1)
-    ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   };
 
   const getUniqueGuests = () => {
@@ -235,6 +288,14 @@ const AdminPanel: React.FC = () => {
   const getGuestMessages = () => {
     if (!selectedGuest) return [];
     return adminMessages.filter(msg => msg.guest_name === selectedGuest);
+  };
+
+  const getPrivateChat = () => {
+    if (!player1 || !player2) return [];
+    return privateMessages.filter(msg => 
+      (msg.sender_name === player1 && msg.receiver_name === player2) ||
+      (msg.sender_name === player2 && msg.receiver_name === player1)
+    ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   };
 
   const formatTime = (timestamp: string) => {
@@ -257,15 +318,16 @@ const AdminPanel: React.FC = () => {
     <div className="container mx-auto p-4 md:p-6">
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-lg mb-6">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">Admin Control Panel</h1>
-        <p className="text-red-100">Manage reports, monitor chats, and communicate with users</p>
+        <p className="text-red-100">Manage reports, monitor chats, moderate posts, and communicate with users</p>
       </div>
       
       <Tabs defaultValue="reports" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="public-chat">Public Chat</TabsTrigger>
-          <TabsTrigger value="private-chat">Private Chat</TabsTrigger>
-          <TabsTrigger value="messages">Admin Messages</TabsTrigger>
+          <TabsTrigger value="posts">Posts</TabsTrigger>
+          <TabsTrigger value="moderation">Moderation</TabsTrigger>
+          <TabsTrigger value="messages">Messages</TabsTrigger>
         </TabsList>
 
         <TabsContent value="reports">
@@ -442,58 +504,64 @@ const AdminPanel: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="private-chat">
+        <TabsContent value="posts">
           <Card>
             <CardHeader>
-              <CardTitle>Private Chat Viewer</CardTitle>
+              <CardTitle>Community Posts ({posts.length} posts)</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  placeholder="Player 1 name"
-                  value={player1}
-                  onChange={(e) => setPlayer1(e.target.value)}
-                />
-                <Input
-                  placeholder="Player 2 name"
-                  value={player2}
-                  onChange={(e) => setPlayer2(e.target.value)}
-                />
-              </div>
-              
-              {player1 && player2 && (
-                <div className="h-96 overflow-y-auto border rounded p-4 bg-muted/50">
-                  <h3 className="font-semibold mb-4">
-                    Chat between {player1} and {player2}
-                  </h3>
-                  {getPrivateChat().map((msg) => (
-                    <div key={msg.id} className="mb-3 group flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold text-primary">{msg.sender_name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatTime(msg.timestamp)}
-                          </span>
-                        </div>
-                        <div className="text-sm mt-1">{msg.message}</div>
+            <CardContent>
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {posts.map((post) => (
+                  <div key={post.id} className="border rounded-lg p-4 group">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-semibold">{post.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          by {post.author_name} • {formatTime(post.timestamp)} • {post.likes} likes
+                        </p>
                       </div>
                       <Button
-                        onClick={() => deletePrivateMessage(msg.id)}
+                        onClick={() => deletePost(post.id)}
                         variant="ghost"
                         size="sm"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 ml-2"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
-                  ))}
-                  {getPrivateChat().length === 0 && (
-                    <div className="text-center text-muted-foreground">
-                      No messages found between these players.
-                    </div>
-                  )}
-                </div>
-              )}
+                    <p className="text-sm text-gray-600 line-clamp-3">{post.content}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="moderation">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserX className="w-5 h-5" />
+                User Moderation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  placeholder="Username to mute"
+                  value={muteUsername}
+                  onChange={(e) => setMuteUsername(e.target.value)}
+                />
+                <Input
+                  placeholder="Reason (optional)"
+                  value={muteReason}
+                  onChange={(e) => setMuteReason(e.target.value)}
+                />
+              </div>
+              <Button onClick={muteUser} className="w-full">
+                <UserX className="w-4 h-4 mr-2" />
+                Mute User from Public Chat
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -502,12 +570,15 @@ const AdminPanel: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Select Guest</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Megaphone className="w-5 h-5" />
+                  Send Message to User
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <Select value={selectedGuest} onValueChange={setSelectedGuest}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose a guest to message" />
+                    <SelectValue placeholder="Choose a user to message" />
                   </SelectTrigger>
                   <SelectContent>
                     {getUniqueGuests().map((guest) => (
@@ -552,7 +623,7 @@ const AdminPanel: React.FC = () => {
                     <Textarea
                       value={newAdminMessage}
                       onChange={(e) => setNewAdminMessage(e.target.value)}
-                      placeholder="Type your message to the guest..."
+                      placeholder="Type your message to the user..."
                       rows={3}
                     />
                     <Button type="submit" className="w-full">
