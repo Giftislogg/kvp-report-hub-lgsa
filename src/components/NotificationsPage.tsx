@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,16 +64,24 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
       })
       .subscribe();
 
-    // Subscribe to admin messages
+    // Subscribe to admin messages - listen for all admin messages for this user
     const messagesChannel = supabase
-      .channel('admin-messages')
+      .channel('admin-messages-notifications')
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
-        table: 'admin_messages',
-        filter: `guest_name=eq.${username}`
-      }, () => {
-        fetchAdminMessages();
+        table: 'admin_messages'
+      }, (payload) => {
+        const newMessage = payload.new as AdminMessage;
+        // Check if this message is for the current user
+        if (newMessage.guest_name === username) {
+          setAdminMessages(prev => [...prev, newMessage]);
+          
+          // If it's from admin to user, show notification
+          if (newMessage.sender_type === 'admin') {
+            toast.success("New message from admin!");
+          }
+        }
       })
       .subscribe();
 
@@ -308,7 +315,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
 
       toast.success("Reply sent to admin");
       setNewMessage('');
-      fetchAdminMessages();
+      // Don't need to call fetchAdminMessages here as real-time will handle it
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error("Failed to send message");
