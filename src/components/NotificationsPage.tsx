@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { MessageSquare, Users, Bell, RefreshCw, UserPlus, Send, FileText, X, CheckCircle } from "lucide-react";
+import { MessageSquare, Users, Bell, RefreshCw, UserPlus, Send, FileText, X, CheckCircle, Trash2 } from "lucide-react";
 
 interface NotificationsPageProps {
   username: string;
@@ -151,6 +151,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         .from('reports')
         .select('*')
         .eq('guest_name', username)
+        .neq('status', 'closed') // Only show reports that are not closed
         .order('timestamp', { ascending: false });
 
       if (error) {
@@ -347,6 +348,11 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
     }
   };
 
+  const removeSuggestion = async (username: string) => {
+    setUserSuggestions(prev => prev.filter(suggestion => suggestion.username !== username));
+    toast.success("Suggestion removed");
+  };
+
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
   };
@@ -402,14 +408,24 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
                       <p className="font-semibold">{user.username}</p>
                       <p className="text-xs text-gray-500">{user.last_seen}</p>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => sendFriendRequest(user.username)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Add Friend
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => sendFriendRequest(user.username)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Add Friend
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => removeSuggestion(user.username)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}
@@ -537,7 +553,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
                         </div>
                       )}
 
-                      {selectedReport?.id === report.id && (
+                      {selectedReport?.id === report.id && report.admin_response && (
                         <div className="mt-4 pt-4 border-t space-y-3">
                           <div className="flex gap-2">
                             <Textarea
@@ -557,16 +573,14 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
                               <Send className="w-4 h-4 mr-2" />
                               Send Reply
                             </Button>
-                            {report.status !== 'closed' && (
-                              <Button
-                                onClick={() => closeReport(report.id)}
-                                variant="outline"
-                                className="text-green-600 hover:text-green-700"
-                              >
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Close Report
-                              </Button>
-                            )}
+                            <Button
+                              onClick={() => closeReport(report.id)}
+                              variant="outline"
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Close Report
+                            </Button>
                           </div>
                         </div>
                       )}

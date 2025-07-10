@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Archive, UserX, Megaphone, X } from "lucide-react";
+import { Trash2, Archive, UserX, Megaphone, X, CheckCircle, Send } from "lucide-react";
 
 interface Report {
   id: string;
@@ -381,7 +381,7 @@ const AdminPanel: React.FC = () => {
                         <p className="text-xs text-muted-foreground">
                           {formatTime(report.timestamp)}
                         </p>
-                        <div className="flex gap-1">
+                        <div className="flex gap-2">
                           <Button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -391,7 +391,7 @@ const AdminPanel: React.FC = () => {
                             size="sm"
                             className="text-blue-600 hover:text-blue-700"
                           >
-                            <Archive className="w-3 h-3 mr-1" />
+                            <CheckCircle className="w-3 h-3 mr-1" />
                             Close
                           </Button>
                           <Button
@@ -403,7 +403,7 @@ const AdminPanel: React.FC = () => {
                             size="sm"
                             className="text-red-600 hover:text-red-700"
                           >
-                            <X className="w-3 h-3 mr-1" />
+                            <Trash2 className="w-3 h-3 mr-1" />
                             Delete
                           </Button>
                         </div>
@@ -472,28 +472,31 @@ const AdminPanel: React.FC = () => {
                       placeholder="Type your response..."
                       rows={4}
                     />
-                    <div className="flex gap-2">
-                      <Button type="submit" className="flex-1">
+                    <div className="flex flex-col gap-2">
+                      <Button type="submit" className="w-full">
+                        <Send className="w-4 h-4 mr-2" />
                         Send Response
                       </Button>
-                      <Button
-                        type="button"
-                        onClick={() => closeReport(selectedReport.id)}
-                        variant="outline"
-                        className="text-blue-600 hover:text-blue-700"
-                      >
-                        <Archive className="w-4 h-4 mr-1" />
-                        Close
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => deleteReport(selectedReport.id)}
-                        variant="outline"
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Delete
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => closeReport(selectedReport.id)}
+                          variant="outline"
+                          className="flex-1 text-blue-600 hover:text-blue-700"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Close Report
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => deleteReport(selectedReport.id)}
+                          variant="outline"
+                          className="flex-1 text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Delete Report
+                        </Button>
+                      </div>
                     </div>
                   </form>
                 </CardContent>
