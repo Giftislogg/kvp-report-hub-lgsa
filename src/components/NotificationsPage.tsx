@@ -86,7 +86,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
 
   const fetchFriends = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('friends')
         .select('*')
         .or(`user1.eq.${username},user2.eq.${username}`)
@@ -98,7 +98,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         return;
       }
 
-      setFriends((data as Friend[]) || []);
+      setFriends(data || []);
     } catch (error) {
       console.error('Unexpected error:', error);
     }
@@ -106,7 +106,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
 
   const fetchFriendRequests = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('friends')
         .select('*')
         .eq('user2', username)
@@ -118,7 +118,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         return;
       }
 
-      setFriendRequests((data as Friend[]) || []);
+      setFriendRequests(data || []);
     } catch (error) {
       console.error('Unexpected error:', error);
     }
@@ -137,7 +137,10 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         return;
       }
 
-      const messages = (data as AdminMessage[]) || [];
+      const messages = (data || []).map(msg => ({
+        ...msg,
+        sender_type: msg.sender_type as 'admin' | 'user'
+      }));
       setAdminMessages(messages);
       
       // Check if admin has sent any messages to allow replies
@@ -184,13 +187,13 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
       });
 
       // Get existing friends and pending requests to exclude them
-      const { data: existingConnections } = await supabase
+      const { data: existingConnections } = await (supabase as any)
         .from('friends')
         .select('user1, user2')
         .or(`user1.eq.${username},user2.eq.${username}`);
 
       const connectedUsers = new Set<string>();
-      existingConnections?.forEach(conn => {
+      existingConnections?.forEach((conn: any) => {
         connectedUsers.add(conn.user1 === username ? conn.user2 : conn.user1);
       });
 
@@ -216,7 +219,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
   const sendFriendRequest = async (targetUsername: string) => {
     try {
       // Check if friendship already exists
-      const { data: existingFriend } = await supabase
+      const { data: existingFriend } = await (supabase as any)
         .from('friends')
         .select('*')
         .or(`and(user1.eq.${username},user2.eq.${targetUsername}),and(user1.eq.${targetUsername},user2.eq.${username})`)
@@ -227,7 +230,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         return;
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('friends')
         .insert({
           user1: username,
@@ -253,14 +256,14 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
   const handleFriendRequest = async (friendId: string, accept: boolean) => {
     try {
       if (accept) {
-        await supabase
+        await (supabase as any)
           .from('friends')
           .update({ status: 'accepted', updated_at: new Date().toISOString() })
           .eq('id', friendId);
         
         toast.success("Friend request accepted!");
       } else {
-        await supabase
+        await (supabase as any)
           .from('friends')
           .update({ status: 'declined' })
           .eq('id', friendId);
