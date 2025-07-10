@@ -1,11 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { MessageSquare, Users, Bell, RefreshCw, UserPlus, Send } from "lucide-react";
+import { MessageSquare, Users, Bell, RefreshCw, UserPlus, Send, FileText, X, CheckCircle } from "lucide-react";
 
 interface NotificationsPageProps {
   username: string;
@@ -30,6 +32,18 @@ interface AdminMessage {
   timestamp: string;
 }
 
+interface Report {
+  id: string;
+  type: string;
+  description: string;
+  guest_name: string;
+  screenshot_url: string | null;
+  timestamp: string;
+  admin_response: string | null;
+  admin_response_timestamp: string | null;
+  status: string | null;
+}
+
 interface UserSuggestion {
   username: string;
   last_seen: string;
@@ -39,16 +53,17 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<Friend[]>([]);
   const [adminMessages, setAdminMessages] = useState<AdminMessage[]>([]);
+  const [userReports, setUserReports] = useState<Report[]>([]);
   const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [newFriendUsername, setNewFriendUsername] = useState('');
-  const [newMessage, setNewMessage] = useState('');
-  const [canReplyToAdmin, setCanReplyToAdmin] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [newReply, setNewReply] = useState('');
 
   useEffect(() => {
     fetchFriends();
     fetchFriendRequests();
-    fetchAdminMessages();
+    fetchUserReports();
     fetchUserSuggestions();
     
     // Subscribe to friends updates
@@ -64,22 +79,21 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
       })
       .subscribe();
 
-    // Subscribe to admin messages - listen for all admin messages for this user
-    const messagesChannel = supabase
-      .channel('admin-messages-notifications')
+    // Subscribe to reports updates
+    const reportsChannel = supabase
+      .channel('reports-updates')
       .on('postgres_changes', { 
-        event: 'INSERT', 
+        event: '*', 
         schema: 'public', 
-        table: 'admin_messages'
+        table: 'reports'
       }, (payload) => {
-        const newMessage = payload.new as AdminMessage;
-        // Check if this message is for the current user
-        if (newMessage.guest_name === username) {
-          setAdminMessages(prev => [...prev, newMessage]);
+        const updatedReport = payload.new as Report;
+        if (updatedReport && updatedReport.guest_name === username) {
+          fetchUserReports();
           
-          // If it's from admin to user, show notification
-          if (newMessage.sender_type === 'admin') {
-            toast.success("New message from admin!");
+          // If admin responded, show notification
+          if (payload.eventType === 'UPDATE' && updatedReport.admin_response) {
+            toast.success("Admin replied to your report!");
           }
         }
       })
@@ -87,7 +101,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
 
     return () => {
       supabase.removeChannel(friendsChannel);
-      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(reportsChannel);
     };
   }, [username]);
 
@@ -131,28 +145,20 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
     }
   };
 
-  const fetchAdminMessages = async () => {
+  const fetchUserReports = async () => {
     try {
       const { data, error } = await supabase
-        .from('admin_messages')
+        .from('reports')
         .select('*')
         .eq('guest_name', username)
         .order('timestamp', { ascending: false });
 
       if (error) {
-        console.error('Error fetching admin messages:', error);
+        console.error('Error fetching user reports:', error);
         return;
       }
 
-      const messages = (data || []).map(msg => ({
-        ...msg,
-        sender_type: msg.sender_type as 'admin' | 'user'
-      }));
-      setAdminMessages(messages);
-      
-      // Check if admin has sent any messages to allow replies
-      const hasAdminMessage = messages.some(msg => msg.sender_type === 'admin');
-      setCanReplyToAdmin(hasAdminMessage);
+      setUserReports(data || []);
     } catch (error) {
       console.error('Unexpected error:', error);
     }
@@ -218,7 +224,7 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
 
   const handleRefresh = async () => {
     setIsLoading(true);
-    await Promise.all([fetchFriends(), fetchFriendRequests(), fetchAdminMessages(), fetchUserSuggestions()]);
+    await Promise.all([fetchFriends(), fetchFriendRequests(), fetchUserReports(), fetchUserSuggestions()]);
     setIsLoading(false);
     toast.success("Refreshed!");
   };
@@ -287,14 +293,9 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
     }
   };
 
-  const sendMessageToAdmin = async () => {
-    if (!newMessage.trim()) {
-      toast.error("Please enter a message");
-      return;
-    }
-
-    if (!canReplyToAdmin) {
-      toast.error("You can only reply after admin has sent you a message");
+  const sendReplyToReport = async () => {
+    if (!selectedReport || !newReply.trim()) {
+      toast.error("Please enter a reply");
       return;
     }
 
@@ -303,22 +304,46 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         .from('admin_messages')
         .insert({
           guest_name: username,
-          message: newMessage,
+          message: newReply.trim(),
           sender_type: 'user'
         });
 
       if (error) {
-        console.error('Error sending message:', error);
-        toast.error("Failed to send message");
+        console.error('Error sending reply:', error);
+        toast.error("Failed to send reply");
         return;
       }
 
       toast.success("Reply sent to admin");
-      setNewMessage('');
-      // Don't need to call fetchAdminMessages here as real-time will handle it
+      setNewReply('');
+      setSelectedReport(null);
     } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error("Failed to send message");
+      console.error('Error sending reply:', error);
+      toast.error("Failed to send reply");
+    }
+  };
+
+  const closeReport = async (reportId: string) => {
+    if (!confirm('Are you sure you want to close this report?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .update({ status: 'closed' })
+        .eq('id', reportId);
+
+      if (error) {
+        console.error('Error closing report:', error);
+        toast.error("Failed to close report");
+        return;
+      }
+
+      toast.success("Report closed");
+      fetchUserReports();
+      setSelectedReport(null);
+    } catch (error) {
+      console.error('Error closing report:', error);
+      toast.error("Failed to close report");
     }
   };
 
@@ -328,6 +353,16 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
 
   const getFriendName = (friend: Friend) => {
     return friend.user1 === username ? friend.user2 : friend.user1;
+  };
+
+  const getStatusBadge = (report: Report) => {
+    if (report.status === 'closed') {
+      return <Badge className="bg-gray-100 text-gray-800">Closed</Badge>;
+    }
+    if (report.admin_response) {
+      return <Badge className="bg-green-100 text-green-800">Admin Replied</Badge>;
+    }
+    return <Badge variant="secondary">Open</Badge>;
   };
 
   return (
@@ -455,69 +490,90 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
           </CardContent>
         </Card>
 
-        {/* Admin Messages */}
+        {/* Your Reports & Admin Messages */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="w-5 h-5" />
-              Messages with Admin
+              <FileText className="w-5 h-5" />
+              Your Reports & Admin Messages ({userReports.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {/* Reply to Admin (only if admin has messaged first) */}
-              {canReplyToAdmin && (
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Reply to admin..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessageToAdmin()}
-                  />
-                  <Button onClick={sendMessageToAdmin}>
-                    <Send className="w-4 h-4 mr-2" />
-                    Reply
-                  </Button>
-                </div>
-              )}
-
-              {!canReplyToAdmin && (
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    You can reply to admin messages once they contact you first
-                  </p>
-                </div>
-              )}
-
-              {/* Messages History */}
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {adminMessages.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">
-                    No messages with admin yet
-                  </p>
-                ) : (
-                  adminMessages.map((message) => (
+              {userReports.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  No reports submitted yet
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {userReports.map((report) => (
                     <div
-                      key={message.id}
-                      className={`p-3 rounded-lg ${
-                        message.sender_type === 'admin' 
-                          ? 'bg-red-50 border-l-4 border-red-400' 
-                          : 'bg-blue-50 border-l-4 border-blue-400'
+                      key={report.id}
+                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                        selectedReport?.id === report.id ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
                       }`}
+                      onClick={() => setSelectedReport(selectedReport?.id === report.id ? null : report)}
                     >
-                      <div className="flex justify-between items-start mb-1">
-                        <Badge variant={message.sender_type === 'admin' ? 'destructive' : 'default'}>
-                          {message.sender_type === 'admin' ? 'Admin' : 'You'}
-                        </Badge>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{report.type}</Badge>
+                          {getStatusBadge(report)}
+                        </div>
                         <span className="text-xs text-gray-500">
-                          {formatTime(message.timestamp)}
+                          {formatTime(report.timestamp)}
                         </span>
                       </div>
-                      <p className="text-sm">{message.message}</p>
+                      <p className="text-sm text-gray-700 mb-2">{report.description}</p>
+                      
+                      {report.admin_response && (
+                        <div className="mt-3 p-3 bg-red-50 border-l-4 border-red-400 rounded">
+                          <div className="flex justify-between items-center mb-1">
+                            <Badge variant="destructive">Admin Response</Badge>
+                            <span className="text-xs text-gray-500">
+                              {formatTime(report.admin_response_timestamp!)}
+                            </span>
+                          </div>
+                          <p className="text-sm">{report.admin_response}</p>
+                        </div>
+                      )}
+
+                      {selectedReport?.id === report.id && (
+                        <div className="mt-4 pt-4 border-t space-y-3">
+                          <div className="flex gap-2">
+                            <Textarea
+                              placeholder="Reply to admin..."
+                              value={newReply}
+                              onChange={(e) => setNewReply(e.target.value)}
+                              rows={3}
+                              className="flex-1"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={sendReplyToReport}
+                              className="flex-1"
+                              disabled={!newReply.trim()}
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              Send Reply
+                            </Button>
+                            {report.status !== 'closed' && (
+                              <Button
+                                onClick={() => closeReport(report.id)}
+                                variant="outline"
+                                className="text-green-600 hover:text-green-700"
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Close Report
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
