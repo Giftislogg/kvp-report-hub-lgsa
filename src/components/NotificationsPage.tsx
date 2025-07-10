@@ -1,94 +1,135 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { MessageSquare, Users, Bell, RefreshCw } from "lucide-react";
+import { MessageSquare, Users, Bell, RefreshCw, UserPlus, Send } from "lucide-react";
 
 interface NotificationsPageProps {
   username: string;
   onNavigate: (page: string, data?: any) => void;
 }
 
-interface Notification {
+interface Friend {
   id: string;
-  type: 'admin_message' | 'chat_request' | 'chat_accepted';
-  from_user: string;
+  user1: string;
+  user2: string;
+  status: 'pending' | 'accepted' | 'declined';
+  requested_by: string;
+  created_at: string;
+}
+
+interface AdminMessage {
+  id: string;
+  guest_name: string;
   message: string;
+  sender_type: 'admin' | 'user';
   timestamp: string;
-  read: boolean;
 }
 
 const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavigate }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [activeChats, setActiveChats] = useState<string[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friendRequests, setFriendRequests] = useState<Friend[]>([]);
+  const [adminMessages, setAdminMessages] = useState<AdminMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [newFriendUsername, setNewFriendUsername] = useState('');
+  const [newMessage, setNewMessage] = useState('');
 
   useEffect(() => {
-    fetchNotifications();
-    fetchActiveChats();
+    fetchFriends();
+    fetchFriendRequests();
+    fetchAdminMessages();
     
-    // Subscribe to new notifications
-    const channel = supabase
-      .channel('user-notifications')
+    // Subscribe to friends updates
+    const friendsChannel = supabase
+      .channel('friends-updates')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'friends',
+        filter: `user1=eq.${username},user2=eq.${username}`
+      }, () => {
+        fetchFriends();
+        fetchFriendRequests();
+      })
+      .subscribe();
+
+    // Subscribe to admin messages
+    const messagesChannel = supabase
+      .channel('admin-messages')
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
-        table: 'notifications',
-        filter: `to_user=eq.${username}`
+        table: 'admin_messages',
+        filter: `guest_name=eq.${username}`
       }, () => {
-        fetchNotifications();
+        fetchAdminMessages();
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(friendsChannel);
+      supabase.removeChannel(messagesChannel);
     };
   }, [username]);
 
-  const fetchNotifications = async () => {
+  const fetchFriends = async () => {
     try {
       const { data, error } = await supabase
-        .from('notifications')
+        .from('friends')
         .select('*')
-        .eq('to_user', username)
-        .order('timestamp', { ascending: false });
+        .or(`user1.eq.${username},user2.eq.${username}`)
+        .eq('status', 'accepted')
+        .order('updated_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching notifications:', error);
+        console.error('Error fetching friends:', error);
         return;
       }
 
-      // Type assertion to ensure the data matches our interface
-      const typedNotifications = (data || []).map(notification => ({
-        ...notification,
-        type: notification.type as 'admin_message' | 'chat_request' | 'chat_accepted'
-      }));
-
-      setNotifications(typedNotifications);
+      setFriends(data || []);
     } catch (error) {
       console.error('Unexpected error:', error);
     }
   };
 
-  const fetchActiveChats = async () => {
+  const fetchFriendRequests = async () => {
     try {
       const { data, error } = await supabase
-        .from('active_chats')
+        .from('friends')
         .select('*')
-        .or(`user1.eq.${username},user2.eq.${username}`);
+        .eq('user2', username)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching active chats:', error);
+        console.error('Error fetching friend requests:', error);
         return;
       }
 
-      const chatUsers = data?.map(chat => 
-        chat.user1 === username ? chat.user2 : chat.user1
-      ) || [];
-      
-      setActiveChats(chatUsers);
+      setFriendRequests(data || []);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+    }
+  };
+
+  const fetchAdminMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_messages')
+        .select('*')
+        .eq('guest_name', username)
+        .order('timestamp', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching admin messages:', error);
+        return;
+      }
+
+      setAdminMessages(data || []);
     } catch (error) {
       console.error('Unexpected error:', error);
     }
@@ -96,59 +137,120 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
 
   const handleRefresh = async () => {
     setIsLoading(true);
-    await Promise.all([fetchNotifications(), fetchActiveChats()]);
+    await Promise.all([fetchFriends(), fetchFriendRequests(), fetchAdminMessages()]);
     setIsLoading(false);
     toast.success("Refreshed!");
   };
 
-  const markAsRead = async (notificationId: string) => {
+  const sendFriendRequest = async () => {
+    if (!newFriendUsername.trim()) {
+      toast.error("Please enter a username");
+      return;
+    }
+
+    if (newFriendUsername === username) {
+      toast.error("You cannot send a friend request to yourself");
+      return;
+    }
+
     try {
-      await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
-      
-      fetchNotifications();
+      // Check if friendship already exists
+      const { data: existingFriend } = await supabase
+        .from('friends')
+        .select('*')
+        .or(`and(user1.eq.${username},user2.eq.${newFriendUsername}),and(user1.eq.${newFriendUsername},user2.eq.${username})`)
+        .single();
+
+      if (existingFriend) {
+        toast.error("Friend request already exists or you're already friends");
+        return;
+      }
+
+      const { error } = await supabase
+        .from('friends')
+        .insert({
+          user1: username,
+          user2: newFriendUsername,
+          requested_by: username,
+          status: 'pending'
+        });
+
+      if (error) {
+        console.error('Error sending friend request:', error);
+        toast.error("Failed to send friend request");
+        return;
+      }
+
+      toast.success(`Friend request sent to ${newFriendUsername}`);
+      setNewFriendUsername('');
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Error sending friend request:', error);
+      toast.error("Failed to send friend request");
     }
   };
 
-  const handleChatRequest = async (fromUser: string, accept: boolean) => {
+  const handleFriendRequest = async (friendId: string, accept: boolean) => {
     try {
       if (accept) {
         await supabase
-          .from('active_chats')
-          .insert({
-            user1: fromUser,
-            user2: username,
-            status: 'active'
-          });
+          .from('friends')
+          .update({ status: 'accepted', updated_at: new Date().toISOString() })
+          .eq('id', friendId);
         
-        toast.success(`Chat accepted with ${fromUser}`);
-        onNavigate('private-chat', { targetPlayer: fromUser });
+        toast.success("Friend request accepted!");
       } else {
-        toast.success("Chat request declined");
+        await supabase
+          .from('friends')
+          .update({ status: 'declined' })
+          .eq('id', friendId);
+        
+        toast.success("Friend request declined");
       }
       
-      // Remove notification
-      await supabase
-        .from('notifications')
-        .delete()
-        .eq('from_user', fromUser)
-        .eq('to_user', username)
-        .eq('type', 'chat_request');
-        
-      fetchNotifications();
-      fetchActiveChats();
+      fetchFriends();
+      fetchFriendRequests();
     } catch (error) {
-      console.error('Error handling chat request:', error);
-      toast.error("Failed to handle chat request");
+      console.error('Error handling friend request:', error);
+      toast.error("Failed to handle friend request");
+    }
+  };
+
+  const sendMessageToAdmin = async () => {
+    if (!newMessage.trim()) {
+      toast.error("Please enter a message");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('admin_messages')
+        .insert({
+          guest_name: username,
+          message: newMessage,
+          sender_type: 'user'
+        });
+
+      if (error) {
+        console.error('Error sending message:', error);
+        toast.error("Failed to send message");
+        return;
+      }
+
+      toast.success("Message sent to admin");
+      setNewMessage('');
+      fetchAdminMessages();
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error("Failed to send message");
     }
   };
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
+  };
+
+  const getFriendName = (friend: Friend) => {
+    return friend.user1 === username ? friend.user2 : friend.user1;
   };
 
   return (
@@ -167,118 +269,156 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
           </Button>
         </div>
 
-        {/* Active Chats */}
-        {activeChats.length > 0 && (
+        {/* Send Friend Request */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5" />
+              Send Friend Request
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter username"
+                value={newFriendUsername}
+                onChange={(e) => setNewFriendUsername(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendFriendRequest()}
+              />
+              <Button onClick={sendFriendRequest}>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Send Request
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Friend Requests */}
+        {friendRequests.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Active Chats ({activeChats.length})
+                <Bell className="w-5 h-5" />
+                Friend Requests ({friendRequests.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {activeChats.map((chatUser) => (
-                  <Button
-                    key={chatUser}
-                    variant="outline"
-                    onClick={() => onNavigate('private-chat', { targetPlayer: chatUser })}
-                    className="w-full justify-start"
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Chat with {chatUser}
-                  </Button>
+              <div className="space-y-3">
+                {friendRequests.map((request) => (
+                  <div key={request.id} className="p-3 border rounded-lg bg-blue-50 border-blue-200">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold">{request.user1} wants to be your friend</p>
+                        <p className="text-xs text-gray-500">{formatTime(request.created_at)}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleFriendRequest(request.id, true)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleFriendRequest(request.id, false)}
+                        >
+                          Decline
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Notifications */}
+        {/* Friends List */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5" />
-              Notifications ({notifications.filter(n => !n.read).length} unread)
+              <Users className="w-5 h-5" />
+              Friends ({friends.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {notifications.length === 0 ? (
+            <div className="space-y-2">
+              {friends.length === 0 ? (
                 <p className="text-muted-foreground text-center py-4">
-                  No notifications yet
+                  No friends yet. Send some friend requests!
                 </p>
               ) : (
-                notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`p-3 border rounded-lg ${
-                      notification.read ? 'bg-gray-50' : 'bg-blue-50 border-blue-200'
-                    }`}
+                friends.map((friend) => (
+                  <Button
+                    key={friend.id}
+                    variant="outline"
+                    onClick={() => onNavigate('private-chat', { targetPlayer: getFriendName(friend) })}
+                    className="w-full justify-start"
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant={notification.type === 'admin_message' ? 'destructive' : 'default'}>
-                            {notification.type === 'admin_message' ? 'Admin' :
-                             notification.type === 'chat_request' ? 'Chat Request' : 'Chat Accepted'}
-                          </Badge>
-                          {!notification.read && (
-                            <Badge variant="secondary" className="bg-red-100 text-red-800">
-                              New
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="font-semibold">From: {notification.from_user}</p>
-                        <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
-                        <p className="text-xs text-gray-500 mt-2">
-                          {formatTime(notification.timestamp)}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2 mt-3">
-                      {notification.type === 'chat_request' && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => handleChatRequest(notification.from_user, true)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            Accept
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleChatRequest(notification.from_user, false)}
-                          >
-                            Decline
-                          </Button>
-                        </>
-                      )}
-                      
-                      {notification.type === 'admin_message' && (
-                        <Button
-                          size="sm"
-                          onClick={() => onNavigate('messages')}
-                        >
-                          View Messages
-                        </Button>
-                      )}
-                      
-                      {!notification.read && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => markAsRead(notification.id)}
-                        >
-                          Mark as Read
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Chat with {getFriendName(friend)}
+                  </Button>
                 ))
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Admin Messages */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              Messages with Admin
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Send Message to Admin */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type your message to admin..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessageToAdmin()}
+                />
+                <Button onClick={sendMessageToAdmin}>
+                  <Send className="w-4 h-4 mr-2" />
+                  Send
+                </Button>
+              </div>
+
+              {/* Messages History */}
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {adminMessages.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">
+                    No messages with admin yet
+                  </p>
+                ) : (
+                  adminMessages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`p-3 rounded-lg ${
+                        message.sender_type === 'admin' 
+                          ? 'bg-red-50 border-l-4 border-red-400' 
+                          : 'bg-blue-50 border-l-4 border-blue-400'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <Badge variant={message.sender_type === 'admin' ? 'destructive' : 'default'}>
+                          {message.sender_type === 'admin' ? 'Admin' : 'You'}
+                        </Badge>
+                        <span className="text-xs text-gray-500">
+                          {formatTime(message.timestamp)}
+                        </span>
+                      </div>
+                      <p className="text-sm">{message.message}</p>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

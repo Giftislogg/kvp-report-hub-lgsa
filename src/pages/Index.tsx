@@ -10,7 +10,6 @@ import AdminPanel from '@/components/AdminPanel';
 import NotificationsPage from '@/components/NotificationsPage';
 import SettingsPage from '@/components/SettingsPage';
 import AuthModal from '@/components/AuthModal';
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -19,53 +18,14 @@ const Index = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingPage, setPendingPage] = useState<string | null>(null);
   const [navigationData, setNavigationData] = useState<any>(null);
-  const [notificationCount, setNotificationCount] = useState(0);
 
   // Load user data from localStorage on mount
   useEffect(() => {
     const savedUsername = localStorage.getItem('username');
     if (savedUsername) {
       setUsername(savedUsername);
-      fetchNotificationCount(savedUsername);
     }
   }, []);
-
-  // Subscribe to notifications when user is logged in
-  useEffect(() => {
-    if (!username) return;
-
-    const channel = supabase
-      .channel('user-notifications')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public', 
-        table: 'notifications',
-        filter: `to_user=eq.${username}`
-      }, () => {
-        fetchNotificationCount(username);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [username]);
-
-  const fetchNotificationCount = async (user: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('id')
-        .eq('to_user', user)
-        .eq('read', false);
-
-      if (!error) {
-        setNotificationCount(data?.length || 0);
-      }
-    } catch (error) {
-      console.error('Error fetching notification count:', error);
-    }
-  };
 
   const handleAuthSubmit = async (inputUsername: string, password: string, isNewUser: boolean) => {
     try {
@@ -173,7 +133,6 @@ const Index = () => {
       <BottomNavigation 
         currentPage={currentPage} 
         onNavigate={handleNavigate} 
-        notificationCount={notificationCount}
       />
 
       <AuthModal 
