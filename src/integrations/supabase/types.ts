@@ -14,7 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_messages: {
+        Row: {
+          guest_name: string
+          id: string
+          message: string
+          sender_type: string
+          timestamp: string
+        }
+        Insert: {
+          guest_name: string
+          id?: string
+          message: string
+          sender_type?: string
+          timestamp?: string
+        }
+        Update: {
+          guest_name?: string
+          id?: string
+          message?: string
+          sender_type?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      private_chats: {
+        Row: {
+          id: string
+          message: string
+          receiver_name: string
+          sender_name: string
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          message: string
+          receiver_name: string
+          sender_name: string
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          message?: string
+          receiver_name?: string
+          sender_name?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      public_chat: {
+        Row: {
+          id: string
+          message: string
+          sender_name: string
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          message: string
+          sender_name: string
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          message?: string
+          sender_name?: string
+          timestamp?: string
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          admin_response: string | null
+          admin_response_timestamp: string | null
+          description: string
+          guest_name: string
+          id: string
+          screenshot_url: string | null
+          timestamp: string
+          type: string
+        }
+        Insert: {
+          admin_response?: string | null
+          admin_response_timestamp?: string | null
+          description: string
+          guest_name: string
+          id?: string
+          screenshot_url?: string | null
+          timestamp?: string
+          type: string
+        }
+        Update: {
+          admin_response?: string | null
+          admin_response_timestamp?: string | null
+          description?: string
+          guest_name?: string
+          id?: string
+          screenshot_url?: string | null
+          timestamp?: string
+          type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
