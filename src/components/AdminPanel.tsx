@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Trash2, Archive, CheckCircle, AlertCircle } from "lucide-react";
 
 interface Report {
   id: string;
@@ -19,6 +19,7 @@ interface Report {
   timestamp: string;
   admin_response: string | null;
   admin_response_timestamp: string | null;
+  status?: string;
 }
 
 interface PublicMessage {
@@ -119,6 +120,75 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  const closeReport = async (reportId: string) => {
+    if (!confirm('Are you sure you want to close this report?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .update({ status: 'closed' })
+        .eq('id', reportId);
+
+      if (error) {
+        console.error('Error closing report:', error);
+        toast.error("Failed to close report");
+        return;
+      }
+
+      toast.success("Report closed");
+      fetchAllData();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error("An unexpected error occurred");
+    }
+  };
+
+  const deletePublicMessage = async (messageId: string) => {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('public_chat')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) {
+        console.error('Error deleting message:', error);
+        toast.error("Failed to delete message");
+        return;
+      }
+
+      toast.success("Message deleted");
+      fetchAllData();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error("An unexpected error occurred");
+    }
+  };
+
+  const deletePrivateMessage = async (messageId: string) => {
+    if (!confirm('Are you sure you want to delete this private message?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('private_chats')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) {
+        console.error('Error deleting message:', error);
+        toast.error("Failed to delete message");
+        return;
+      }
+
+      toast.success("Private message deleted");
+      fetchAllData();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error("An unexpected error occurred");
+    }
+  };
+
   const sendAdminMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedGuest || !newAdminMessage.trim()) return;
@@ -184,11 +254,14 @@ const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
+    <div className="container mx-auto p-4 md:p-6">
+      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-lg mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Admin Control Panel</h1>
+        <p className="text-red-100">Manage reports, monitor chats, and communicate with users</p>
+      </div>
       
       <Tabs defaultValue="reports" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="public-chat">Public Chat</TabsTrigger>
           <TabsTrigger value="private-chat">Private Chat</TabsTrigger>
@@ -199,31 +272,55 @@ const AdminPanel: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>All Reports ({reports.length})</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>All Reports ({reports.length})</span>
+                  <Badge variant="secondary">{reports.filter(r => !r.admin_response).length} pending</Badge>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {reports.map((report) => (
                     <div
                       key={report.id}
-                      className={`p-4 border rounded cursor-pointer hover:bg-muted/50 ${
-                        selectedReport?.id === report.id ? 'bg-muted' : ''
+                      className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                        selectedReport?.id === report.id ? 'bg-muted border-primary' : ''
                       }`}
                       onClick={() => setSelectedReport(report)}
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline">{report.type}</Badge>
-                        <span className="text-sm text-muted-foreground">
-                          by {report.guest_name}
-                        </span>
-                        {report.admin_response && (
-                          <Badge>Responded</Badge>
-                        )}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{report.type}</Badge>
+                          <span className="text-sm text-muted-foreground">
+                            by {report.guest_name}
+                          </span>
+                        </div>
+                        <div className="flex gap-1">
+                          {report.admin_response && (
+                            <Badge className="bg-green-100 text-green-800">Responded</Badge>
+                          )}
+                          {report.status === 'closed' && (
+                            <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm truncate">{report.description}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatTime(report.timestamp)}
-                      </p>
+                      <p className="text-sm truncate mb-2">{report.description}</p>
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground">
+                          {formatTime(report.timestamp)}
+                        </p>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeReport(report.id);
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Archive className="w-3 h-3 mr-1" />
+                          Close
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -233,7 +330,14 @@ const AdminPanel: React.FC = () => {
             {selectedReport && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Report Details</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Report Details</span>
+                    {selectedReport.status === 'closed' ? (
+                      <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
+                    ) : (
+                      <Badge variant="destructive">Open</Badge>
+                    )}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -281,9 +385,20 @@ const AdminPanel: React.FC = () => {
                       placeholder="Type your response..."
                       rows={4}
                     />
-                    <Button type="submit" className="w-full">
-                      Send Response
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="flex-1">
+                        Send Response
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => closeReport(selectedReport.id)}
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Archive className="w-4 h-4 mr-1" />
+                        Close Report
+                      </Button>
+                    </div>
                   </form>
                 </CardContent>
               </Card>
@@ -294,19 +409,32 @@ const AdminPanel: React.FC = () => {
         <TabsContent value="public-chat">
           <Card>
             <CardHeader>
-              <CardTitle>Public Chat History ({publicMessages.length} messages)</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span>Public Chat History ({publicMessages.length} messages)</span>
+                <Badge variant="secondary">Admin Mode</Badge>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-96 overflow-y-auto border rounded p-4 bg-muted/50">
                 {publicMessages.map((msg) => (
-                  <div key={msg.id} className="mb-3">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-semibold text-primary">{msg.sender_name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatTime(msg.timestamp)}
-                      </span>
+                  <div key={msg.id} className="mb-3 group flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-primary">{msg.sender_name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatTime(msg.timestamp)}
+                        </span>
+                      </div>
+                      <div className="text-sm mt-1">{msg.message}</div>
                     </div>
-                    <div className="text-sm mt-1">{msg.message}</div>
+                    <Button
+                      onClick={() => deletePublicMessage(msg.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 ml-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -320,7 +448,7 @@ const AdminPanel: React.FC = () => {
               <CardTitle>Private Chat Viewer</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <Input
                   placeholder="Player 1 name"
                   value={player1}
@@ -339,14 +467,24 @@ const AdminPanel: React.FC = () => {
                     Chat between {player1} and {player2}
                   </h3>
                   {getPrivateChat().map((msg) => (
-                    <div key={msg.id} className="mb-3">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-semibold text-primary">{msg.sender_name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatTime(msg.timestamp)}
-                        </span>
+                    <div key={msg.id} className="mb-3 group flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-semibold text-primary">{msg.sender_name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatTime(msg.timestamp)}
+                          </span>
+                        </div>
+                        <div className="text-sm mt-1">{msg.message}</div>
                       </div>
-                      <div className="text-sm mt-1">{msg.message}</div>
+                      <Button
+                        onClick={() => deletePrivateMessage(msg.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 ml-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   ))}
                   {getPrivateChat().length === 0 && (

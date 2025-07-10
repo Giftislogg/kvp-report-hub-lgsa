@@ -1,6 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Menu, X } from "lucide-react";
 
 interface NavigationProps {
   currentPage: string;
@@ -9,40 +12,134 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ currentPage, onNavigate, guestName }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminError, setAdminError] = useState('');
+
   const navItems = [
     { id: 'home', label: 'Home' },
     { id: 'report', label: 'Report Form' },
     { id: 'public-chat', label: 'Public Chat' },
     { id: 'private-chat', label: '1-on-1 Chat' },
     { id: 'messages', label: 'My Messages' },
-    { id: 'admin', label: 'Admin Panel' },
   ];
 
+  const handleAdminLogin = () => {
+    // Simple password check - in production, use proper authentication
+    if (adminPassword === 'admin123') {
+      setShowAdminLogin(false);
+      setAdminPassword('');
+      setAdminError('');
+      onNavigate('admin');
+    } else {
+      setAdminError('Invalid password');
+    }
+  };
+
   return (
-    <nav className="bg-primary text-primary-foreground p-4">
-      <div className="container mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">LGSA KVRP Server</h1>
-          {guestName && (
-            <span className="text-sm bg-primary-foreground/20 px-3 py-1 rounded">
-              Welcome, {guestName}
-            </span>
+    <>
+      <nav className="bg-gradient-to-r from-blue-900 via-blue-800 to-purple-900 text-white shadow-lg">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center space-x-4">
+              <h1 
+                className="text-xl md:text-2xl font-bold cursor-pointer hover:text-blue-200 transition-colors" 
+                onClick={() => onNavigate('home')}
+              >
+                KASI Vibes Role-Play Support Center
+              </h1>
+            </div>
+            
+            {guestName && (
+              <div className="hidden md:flex items-center bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full">
+                <span className="text-sm">Welcome, {guestName}</span>
+              </div>
+            )}
+
+            {/* Mobile menu button */}
+            <button
+              className="md:hidden p-2 rounded-md hover:bg-white/10 transition-colors"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex flex-wrap gap-2 pb-4">
+            {navItems.map((item) => (
+              <Button
+                key={item.id}
+                variant={currentPage === item.id ? "secondary" : "ghost"}
+                onClick={() => onNavigate(item.id)}
+                className="text-white hover:bg-white/20 hover:text-white"
+              >
+                {item.label}
+              </Button>
+            ))}
+          </div>
+
+          {/* Mobile Navigation */}
+          {isMenuOpen && (
+            <div className="md:hidden pb-4 space-y-2">
+              {guestName && (
+                <div className="bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg mb-3">
+                  <span className="text-sm">Welcome, {guestName}</span>
+                </div>
+              )}
+              {navItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant={currentPage === item.id ? "secondary" : "ghost"}
+                  onClick={() => {
+                    onNavigate(item.id);
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full justify-start text-white hover:bg-white/20 hover:text-white"
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </div>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
-          {navItems.map((item) => (
-            <Button
-              key={item.id}
-              variant={currentPage === item.id ? "secondary" : "ghost"}
-              onClick={() => onNavigate(item.id)}
-              className="text-primary-foreground hover:bg-primary-foreground/20"
-            >
-              {item.label}
-            </Button>
-          ))}
+
+        {/* Admin Panel Button - Fixed at bottom */}
+        <div className="fixed bottom-4 right-4 z-50">
+          <Button
+            onClick={() => setShowAdminLogin(true)}
+            className="bg-red-600 hover:bg-red-700 text-white shadow-lg rounded-full px-6 py-3"
+          >
+            Admin Panel
+          </Button>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Admin Login Dialog */}
+      <Dialog open={showAdminLogin} onOpenChange={setShowAdminLogin}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Admin Access</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Enter admin password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
+            />
+            {adminError && (
+              <p className="text-red-500 text-sm">{adminError}</p>
+            )}
+            <Button onClick={handleAdminLogin} className="w-full">
+              Login
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
