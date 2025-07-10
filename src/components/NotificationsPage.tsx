@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,7 +60,13 @@ const NotificationsPage: React.FC<NotificationsPageProps> = ({ username, onNavig
         return;
       }
 
-      setNotifications(data || []);
+      // Type assertion to ensure the data matches our interface
+      const typedNotifications = (data || []).map(notification => ({
+        ...notification,
+        type: notification.type as 'admin_message' | 'chat_request' | 'chat_accepted'
+      }));
+
+      setNotifications(typedNotifications);
     } catch (error) {
       console.error('Unexpected error:', error);
     }
