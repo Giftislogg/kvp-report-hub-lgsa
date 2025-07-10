@@ -91,6 +91,7 @@ export type Database = {
           guest_name: string
           id: string
           screenshot_url: string | null
+          status: string | null
           timestamp: string
           type: string
         }
@@ -101,6 +102,7 @@ export type Database = {
           guest_name: string
           id?: string
           screenshot_url?: string | null
+          status?: string | null
           timestamp?: string
           type: string
         }
@@ -111,6 +113,7 @@ export type Database = {
           guest_name?: string
           id?: string
           screenshot_url?: string | null
+          status?: string | null
           timestamp?: string
           type?: string
         }

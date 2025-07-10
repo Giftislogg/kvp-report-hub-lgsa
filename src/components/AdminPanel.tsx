@@ -19,7 +19,7 @@ interface Report {
   timestamp: string;
   admin_response: string | null;
   admin_response_timestamp: string | null;
-  status?: string;
+  status: string | null;
 }
 
 interface PublicMessage {
