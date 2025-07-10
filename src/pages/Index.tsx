@@ -1,54 +1,138 @@
 
 import React, { useState, useEffect } from 'react';
-import Navigation from '@/components/Navigation';
+import BottomNavigation from '@/components/BottomNavigation';
 import HomePage from '@/components/HomePage';
 import ReportForm from '@/components/ReportForm';
 import PublicChat from '@/components/PublicChat';
 import PrivateChat from '@/components/PrivateChat';
 import AdminMessages from '@/components/AdminMessages';
 import AdminPanel from '@/components/AdminPanel';
-import GuestNameModal from '@/components/GuestNameModal';
+import NotificationsPage from '@/components/NotificationsPage';
+import SettingsPage from '@/components/SettingsPage';
+import AuthModal from '@/components/AuthModal';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('home');
-  const [guestName, setGuestName] = useState<string | null>(null);
-  const [showGuestModal, setShowGuestModal] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingPage, setPendingPage] = useState<string | null>(null);
+  const [navigationData, setNavigationData] = useState<any>(null);
+  const [notificationCount, setNotificationCount] = useState(0);
 
-  // Load guest name from localStorage on mount
+  // Load user data from localStorage on mount
   useEffect(() => {
-    const savedGuestName = localStorage.getItem('guestName');
-    if (savedGuestName) {
-      setGuestName(savedGuestName);
+    const savedUsername = localStorage.getItem('username');
+    if (savedUsername) {
+      setUsername(savedUsername);
+      fetchNotificationCount(savedUsername);
     }
   }, []);
 
-  const handleGuestNameSubmit = (name: string) => {
-    setGuestName(name);
-    localStorage.setItem('guestName', name);
-    setShowGuestModal(false);
-    
-    if (pendingPage) {
-      setCurrentPage(pendingPage);
-      setPendingPage(null);
+  // Subscribe to notifications when user is logged in
+  useEffect(() => {
+    if (!username) return;
+
+    const channel = supabase
+      .channel('user-notifications')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public', 
+        table: 'notifications',
+        filter: `to_user=eq.${username}`
+      }, () => {
+        fetchNotificationCount(username);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [username]);
+
+  const fetchNotificationCount = async (user: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('to_user', user)
+        .eq('read', false);
+
+      if (!error) {
+        setNotificationCount(data?.length || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching notification count:', error);
     }
   };
 
-  const handleNavigate = (page: string) => {
-    // Pages that require guest name
-    const requiresGuestName = ['report', 'public-chat', 'private-chat', 'messages'];
+  const handleAuthSubmit = async (inputUsername: string, password: string, isNewUser: boolean) => {
+    try {
+      if (isNewUser) {
+        // Store user credentials
+        const userData = { username: inputUsername, password };
+        localStorage.setItem('userCredentials', JSON.stringify(userData));
+        localStorage.setItem('username', inputUsername);
+        
+        setUsername(inputUsername);
+        setShowAuthModal(false);
+        toast.success("Account created successfully!");
+      } else {
+        // Verify existing user
+        const storedData = localStorage.getItem('userCredentials');
+        if (storedData) {
+          const { username: storedUsername, password: storedPassword } = JSON.parse(storedData);
+          if (storedUsername === inputUsername && storedPassword === password) {
+            localStorage.setItem('username', inputUsername);
+            setUsername(inputUsername);
+            setShowAuthModal(false);
+            toast.success("Logged in successfully!");
+          } else {
+            toast.error("Invalid credentials");
+            return;
+          }
+        } else {
+          toast.error("No account found. Please create an account first.");
+          return;
+        }
+      }
+      
+      if (pendingPage) {
+        setCurrentPage(pendingPage);
+        setPendingPage(null);
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      toast.error("Authentication failed");
+    }
+  };
+
+  const handleNavigate = (page: string, data?: any) => {
+    // Pages that require authentication
+    const requiresAuth = ['report', 'public-chat', 'private-chat', 'messages', 'notifications'];
     
-    if (requiresGuestName.includes(page) && !guestName) {
+    if (requiresAuth.includes(page) && !username) {
       setPendingPage(page);
-      setShowGuestModal(true);
+      setNavigationData(data);
+      setShowAuthModal(true);
       return;
     }
     
     setCurrentPage(page);
+    setNavigationData(data);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('username');
+    localStorage.removeItem('userCredentials');
+    setUsername(null);
+    setCurrentPage('home');
+    toast.success("Logged out successfully");
   };
 
   const renderCurrentPage = () => {
-    if (!guestName && ['report', 'public-chat', 'private-chat', 'messages'].includes(currentPage)) {
+    if (!username && ['report', 'public-chat', 'private-chat', 'messages', 'notifications', 'settings'].includes(currentPage)) {
       return <HomePage onNavigate={handleNavigate} />;
     }
 
@@ -56,13 +140,17 @@ const Index = () => {
       case 'home':
         return <HomePage onNavigate={handleNavigate} />;
       case 'report':
-        return <ReportForm guestName={guestName!} />;
+        return <ReportForm guestName={username!} />;
       case 'public-chat':
-        return <PublicChat guestName={guestName!} />;
+        return <PublicChat guestName={username!} />;
       case 'private-chat':
-        return <PrivateChat guestName={guestName!} />;
+        return <PrivateChat guestName={username!} initialTarget={navigationData?.targetPlayer} />;
       case 'messages':
-        return <AdminMessages guestName={guestName!} />;
+        return <AdminMessages guestName={username!} />;
+      case 'notifications':
+        return <NotificationsPage username={username!} onNavigate={handleNavigate} />;
+      case 'settings':
+        return <SettingsPage username={username!} onNavigate={handleNavigate} onLogout={handleLogout} />;
       case 'admin':
         return <AdminPanel />;
       default:
@@ -72,19 +160,19 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <Navigation 
-        currentPage={currentPage} 
-        onNavigate={handleNavigate} 
-        guestName={guestName} 
-      />
-      
-      <main>
+      <main className="min-h-screen">
         {renderCurrentPage()}
       </main>
 
-      <GuestNameModal 
-        isOpen={showGuestModal} 
-        onSubmit={handleGuestNameSubmit} 
+      <BottomNavigation 
+        currentPage={currentPage} 
+        onNavigate={handleNavigate} 
+        notificationCount={notificationCount}
+      />
+
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onSubmit={handleAuthSubmit} 
       />
     </div>
   );

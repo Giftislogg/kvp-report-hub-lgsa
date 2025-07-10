@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 interface PrivateChatProps {
   guestName: string;
+  initialTarget?: string;
 }
 
 interface PrivateMessage {
@@ -19,9 +20,9 @@ interface PrivateMessage {
   timestamp: string;
 }
 
-const PrivateChat: React.FC<PrivateChatProps> = ({ guestName }) => {
-  const [targetPlayer, setTargetPlayer] = useState('');
-  const [chatStarted, setChatStarted] = useState(false);
+const PrivateChat: React.FC<PrivateChatProps> = ({ guestName, initialTarget }) => {
+  const [targetPlayer, setTargetPlayer] = useState(initialTarget || '');
+  const [chatStarted, setChatStarted] = useState(!!initialTarget);
   const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -29,6 +30,13 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName }) => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  useEffect(() => {
+    if (initialTarget) {
+      setTargetPlayer(initialTarget);
+      setChatStarted(true);
+    }
+  }, [initialTarget]);
 
   useEffect(() => {
     if (chatStarted && targetPlayer) {
@@ -86,7 +94,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName }) => {
     }
   };
 
-  const startChat = (e: React.FormEvent) => {
+  const startChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetPlayer.trim()) {
       toast.error("Please enter a player name");
@@ -98,7 +106,23 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName }) => {
       return;
     }
 
-    setChatStarted(true);
+    // Send chat request notification
+    try {
+      await supabase
+        .from('notifications')
+        .insert({
+          to_user: targetPlayer.trim(),
+          from_user: guestName,
+          type: 'chat_request',
+          message: `${guestName} wants to start a private chat with you.`
+        });
+      
+      toast.success(`Chat request sent to ${targetPlayer.trim()}`);
+      setChatStarted(true);
+    } catch (error) {
+      console.error('Error sending chat request:', error);
+      toast.error("Failed to send chat request");
+    }
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -133,7 +157,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName }) => {
 
   if (!chatStarted) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-4 pb-20">
         <Card className="max-w-md mx-auto">
           <CardHeader>
             <CardTitle>Start 1-on-1 Chat</CardTitle>
@@ -151,7 +175,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName }) => {
                 />
               </div>
               <Button type="submit" className="w-full">
-                Start Chat
+                Send Chat Request
               </Button>
             </form>
           </CardContent>
@@ -161,18 +185,18 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName }) => {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <Card className="max-w-4xl mx-auto">
+    <div className="container mx-auto p-4 pb-20">
+      <Card className="max-w-4xl mx-auto h-[calc(100vh-200px)] flex flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Chat with {targetPlayer}</CardTitle>
             <Button variant="outline" onClick={() => setChatStarted(false)}>
-              Back to Player Selection
+              Back
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="h-96 overflow-y-auto border rounded p-4 mb-4 bg-muted/50">
+        <CardContent className="flex-1 flex flex-col p-0">
+          <div className="flex-1 overflow-y-auto p-4 bg-muted/50">
             {messages.length === 0 ? (
               <div className="text-center text-muted-foreground">
                 No messages yet. Start the conversation!
@@ -201,15 +225,17 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName }) => {
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={sendMessage} className="flex gap-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1"
-            />
-            <Button type="submit">Send</Button>
-          </form>
+          <div className="p-4 border-t">
+            <form onSubmit={sendMessage} className="flex gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1"
+              />
+              <Button type="submit">Send</Button>
+            </form>
+          </div>
         </CardContent>
       </Card>
     </div>
