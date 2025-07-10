@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import BottomNavigation from '@/components/BottomNavigation';
 import HomePage from '@/components/HomePage';
@@ -33,6 +32,25 @@ const Index = () => {
         // Check if username already exists
         const existingUser = localStorage.getItem(`user_${inputUsername}`);
         if (existingUser) {
+          toast.error("Username already exists. Please choose a different one or login instead.");
+          return;
+        }
+
+        // Also check if any other users have the same username (case-insensitive)
+        const allKeys = Object.keys(localStorage);
+        const existingUsernames = allKeys
+          .filter(key => key.startsWith('user_'))
+          .map(key => {
+            try {
+              const userData = JSON.parse(localStorage.getItem(key) || '{}');
+              return userData.username?.toLowerCase();
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean);
+
+        if (existingUsernames.includes(inputUsername.toLowerCase())) {
           toast.error("Username already exists. Please choose a different one or login instead.");
           return;
         }
