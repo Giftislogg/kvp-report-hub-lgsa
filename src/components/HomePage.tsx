@@ -2,13 +2,13 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
-import PostCreator from './PostCreator';
-import PostsList from './PostsList';
 import SideNavigation from './SideNavigation';
 import AnnouncementsSection from './AnnouncementsSection';
 import TutorialsSection from './TutorialsSection';
+import CommunitySection from './CommunitySection';
+import ChatSection from './ChatSection';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -23,14 +23,8 @@ const HomePage: React.FC<HomePageProps> = ({
   sidebarOpen = false,
   onCloseSidebar 
 }) => {
-  const [showPostCreator, setShowPostCreator] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [activeSection, setActiveSection] = useState('home');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
-  const handlePostCreated = () => {
-    setRefreshKey(prev => prev + 1);
-  };
 
   const handleSectionChange = (section: string) => {
     setActiveSection(section);
@@ -39,10 +33,14 @@ const HomePage: React.FC<HomePageProps> = ({
 
   const renderContent = () => {
     switch (activeSection) {
+      case 'community':
+        return <CommunitySection username={username} />;
       case 'announcements':
         return <AnnouncementsSection username={username} />;
       case 'tutorials':
         return <TutorialsSection />;
+      case 'chat':
+        return <ChatSection username={username} />;
       default:
         return (
           <>
@@ -92,40 +90,33 @@ const HomePage: React.FC<HomePageProps> = ({
               </CardContent>
             </Card>
 
-            {/* Posts Section */}
-            {username && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold">Community Posts</h2>
-                  <Button 
-                    onClick={() => setShowPostCreator(!showPostCreator)}
-                    className="flex items-center gap-2"
-                    size="sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Create Post</span>
-                    <span className="sm:hidden">Post</span>
-                  </Button>
-                </div>
-
-                {showPostCreator && (
-                  <PostCreator 
-                    username={username}
-                    onPostCreated={handlePostCreated}
-                    onClose={() => setShowPostCreator(false)}
-                  />
-                )}
-
-                <PostsList key={refreshKey} username={username} />
-              </div>
-            )}
+            {/* Quick Access Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection('community')}>
+                <CardContent className="p-4 text-center">
+                  <h3 className="text-base font-semibold mb-2">Community Posts</h3>
+                  <p className="text-gray-600 text-sm">
+                    Share your experiences and connect with fellow players
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('chat')}>
+                <CardContent className="p-4 text-center">
+                  <h3 className="text-base font-semibold mb-2">Chat & Messages</h3>
+                  <p className="text-gray-600 text-sm">
+                    Create groups and chat with friends
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
             {!username && (
               <Card>
                 <CardContent className="p-4 text-center">
                   <h3 className="text-base font-semibold mb-2">Join the Community</h3>
                   <p className="text-gray-600 mb-4 text-sm">
-                    Login or create an account to view and create posts, chat with other players, and access all features.
+                    Login or create an account to access all features and connect with other players.
                   </p>
                   <Button onClick={() => onNavigate('public-chat')} size="sm">
                     Get Started

@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Home, Megaphone, BookOpen, ChevronRight, Users, UserPlus, MessageSquare, Shield } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import UserAvatar from './UserAvatar';
 
 interface SideNavigationProps {
@@ -12,27 +14,63 @@ interface SideNavigationProps {
   onClose?: () => void;
 }
 
+interface RegisteredUser {
+  id: string;
+  author_name: string;
+  timestamp: string;
+}
+
 const SideNavigation: React.FC<SideNavigationProps> = ({ 
   activeSection, 
   onSectionChange,
   username,
   onClose 
 }) => {
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
+    { id: 'community', label: 'Community Posts', icon: Users },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'tutorials', label: 'Tutorials', icon: BookOpen },
   ];
 
-  // Mock friend suggestions data - registered users
-  const friendSuggestions = [
-    { id: 1, name: 'Alex Johnson', mutual: 3, status: 'online' },
-    { id: 2, name: 'Sarah Wilson', mutual: 7, status: 'offline' },
-    { id: 3, name: 'Mike Davis', mutual: 2, status: 'online' },
-    { id: 4, name: 'Emma Brown', mutual: 5, status: 'away' },
-    { id: 5, name: 'John Doe', mutual: 1, status: 'online' },
-    { id: 6, name: 'Jane Smith', mutual: 4, status: 'offline' },
-  ];
+  useEffect(() => {
+    fetchRegisteredUsers();
+  }, []);
+
+  const fetchRegisteredUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('author_name, timestamp')
+        .order('timestamp', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return;
+      }
+
+      // Get unique users from posts
+      const uniqueUsers = data?.reduce((acc: RegisteredUser[], post) => {
+        if (!acc.find(user => user.author_name === post.author_name) && post.author_name !== username) {
+          acc.push({
+            id: `user-${post.author_name}`,
+            author_name: post.author_name,
+            timestamp: post.timestamp
+          });
+        }
+        return acc;
+      }, []) || [];
+
+      setRegisteredUsers(uniqueUsers.slice(0, 6)); // Show max 6 users
+    } catch (error) {
+      console.error('Unexpected error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Mock admin messages
   const adminMessages = [
@@ -40,15 +78,6 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
     { id: 2, message: 'Server maintenance scheduled for tonight.', timestamp: '1 day ago', read: true },
     { id: 3, message: 'New features have been added to the platform.', timestamp: '3 days ago', read: true },
   ];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'online': return 'bg-green-500';
-      case 'away': return 'bg-yellow-500';
-      case 'offline': return 'bg-gray-400';
-      default: return 'bg-gray-400';
-    }
-  };
 
   const handleSectionChange = (section: string) => {
     onSectionChange(section);
@@ -82,37 +111,40 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
         })}
       </div>
 
-      {/* Friend Suggestions Section */}
+      {/* Registered Users Section */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
             <UserPlus className="w-4 h-4" />
-            Suggested Friends
+            Registered Users
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {friendSuggestions.map((friend) => (
-              <div key={friend.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <UserAvatar username={friend.name} size="sm" />
-                    <div className={`absolute -bottom-1 -right-1 w-2.5 h-2.5 ${getStatusColor(friend.status)} rounded-full border-2 border-white`}></div>
+          {loading ? (
+            <div className="text-sm text-gray-500">Loading users...</div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {registeredUsers.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
+                  <div className="flex items-center gap-2">
+                    <UserAvatar username={user.author_name} size="sm" />
+                    <div>
+                      <p className="text-sm font-medium">{user.author_name}</p>
+                      <p className="text-xs text-gray-500">Platform Member</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{friend.name}</p>
-                    <p className="text-xs text-gray-500">{friend.mutual} mutual friends</p>
-                  </div>
+                  <Button size="sm" variant="outline" className="text-xs px-2 py-1">
+                    Add Friend
+                  </Button>
                 </div>
-                <Button size="sm" variant="outline" className="text-xs px-2 py-1">
-                  Add
-                </Button>
-              </div>
-            ))}
-          </div>
-          <Button variant="ghost" size="sm" className="w-full text-xs mt-2">
-            View All Suggestions
-          </Button>
+              ))}
+              {registeredUsers.length === 0 && (
+                <div className="text-sm text-gray-500 text-center py-4">
+                  No registered users found
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -143,9 +175,6 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
                   </div>
                 </div>
               ))}
-              <Button variant="ghost" size="sm" className="w-full text-xs">
-                View All Messages
-              </Button>
             </div>
           </CardContent>
         </Card>
