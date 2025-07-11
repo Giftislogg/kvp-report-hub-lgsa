@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Users, Plus, MoreHorizontal, Search } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import UserAvatar from './UserAvatar';
 
 interface ChatSectionProps {
@@ -18,6 +19,7 @@ interface ChatGroup {
   lastMessage: string;
   timestamp: string;
   unread: number;
+  isPublic?: boolean;
 }
 
 interface Friend {
@@ -31,14 +33,61 @@ const ChatSection: React.FC<ChatSectionProps> = ({ username }) => {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [friends, setFriends] = useState<Friend[]>([]);
 
-  // Mock data - replace with actual data from Supabase
-  const [chatGroups, setChatGroups] = useState<ChatGroup[]>([]);
-  const [friends, setFriends] = useState<Friend[]>([
-    { id: '1', name: 'Alex Johnson', status: 'online', lastSeen: 'Now' },
-    { id: '2', name: 'Sarah Wilson', status: 'offline', lastSeen: '2 hours ago' },
-    { id: '3', name: 'Mike Davis', status: 'online', lastSeen: 'Now' },
+  // Initialize with GTAMO IS FOREVER public group
+  const [chatGroups, setChatGroups] = useState<ChatGroup[]>([
+    {
+      id: 'gtamo-forever',
+      name: 'GTAMO IS FOREVER',
+      members: ['everyone'],
+      lastMessage: 'Welcome to the official KVRP community chat!',
+      timestamp: '1 hour ago',
+      unread: 3,
+      isPublic: true
+    }
   ]);
+
+  useEffect(() => {
+    if (username) {
+      fetchFriends();
+    }
+  }, [username]);
+
+  const fetchFriends = async () => {
+    if (!username) return;
+
+    try {
+      // Fetch accepted friend requests where user is either sender or receiver
+      const { data: notifications, error } = await supabase
+        .from('notifications')
+        .select('from_user, to_user')
+        .eq('type', 'friend_accepted')
+        .or(`from_user.eq.${username},to_user.eq.${username}`);
+
+      if (error) {
+        console.error('Error fetching friends:', error);
+        return;
+      }
+
+      // Extract friend names
+      const friendNames = notifications?.map(notif => 
+        notif.from_user === username ? notif.to_user : notif.from_user
+      ) || [];
+
+      // Create friend objects with mock status
+      const friendsList = friendNames.map((name, index) => ({
+        id: `friend-${index}`,
+        name,
+        status: Math.random() > 0.5 ? 'online' : 'offline' as 'online' | 'offline',
+        lastSeen: Math.random() > 0.5 ? 'Now' : '2 hours ago'
+      }));
+
+      setFriends(friendsList);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+    }
+  };
 
   const handleCreateGroup = () => {
     if (!groupName.trim()) return;
@@ -52,7 +101,7 @@ const ChatSection: React.FC<ChatSectionProps> = ({ username }) => {
       unread: 0
     };
     
-    setChatGroups([newGroup, ...chatGroups]);
+    setChatGroups([...chatGroups, newGroup]);
     setGroupName('');
     setShowCreateGroup(false);
   };
@@ -112,13 +161,13 @@ const ChatSection: React.FC<ChatSectionProps> = ({ username }) => {
         />
       </div>
 
-      {/* Create Group Section */}
+      {/* Chat Groups */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="w-5 h-5" />
-              Create a group
+              Chat Groups
             </CardTitle>
             <Button
               onClick={() => setShowCreateGroup(!showCreateGroup)}
@@ -129,69 +178,63 @@ const ChatSection: React.FC<ChatSectionProps> = ({ username }) => {
               New Group
             </Button>
           </div>
-          <p className="text-sm text-gray-600">Be the first to create a group</p>
         </CardHeader>
-        {showCreateGroup && (
-          <CardContent className="pt-0">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Group name..."
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={handleCreateGroup}>Create</Button>
+        <CardContent>
+          {showCreateGroup && (
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Group name..."
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className="flex-1"
+                />
+                <Button onClick={handleCreateGroup}>Create</Button>
+              </div>
             </div>
-          </CardContent>
-        )}
-      </Card>
-
-      {/* Chat Groups */}
-      {chatGroups.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Your Groups</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {chatGroups.map((group) => (
-                <div key={group.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900">{group.name}</h3>
-                      <p className="text-sm text-gray-500">{group.lastMessage}</p>
-                      <p className="text-xs text-gray-400">{group.timestamp}</p>
-                    </div>
+          )}
+          
+          <div className="space-y-3">
+            {chatGroups.map((group) => (
+              <div key={group.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer border">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 ${group.isPublic ? 'bg-green-100' : 'bg-blue-100'} rounded-full flex items-center justify-center`}>
+                    <Users className={`w-6 h-6 ${group.isPublic ? 'text-green-600' : 'text-blue-600'}`} />
                   </div>
-                  <div className="flex items-center gap-2">
-                    {group.unread > 0 && (
-                      <Badge variant="secondary">{group.unread}</Badge>
-                    )}
-                    <Button size="sm" variant="ghost">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
+                  <div>
+                    <h3 className="font-medium text-gray-900 flex items-center gap-2">
+                      {group.name}
+                      {group.isPublic && <Badge variant="secondary">Public</Badge>}
+                    </h3>
+                    <p className="text-sm text-gray-500">{group.lastMessage}</p>
+                    <p className="text-xs text-gray-400">{group.timestamp}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <div className="flex items-center gap-2">
+                  {group.unread > 0 && (
+                    <Badge variant="destructive">{group.unread}</Badge>
+                  )}
+                  <Button size="sm" variant="ghost">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Friends List */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Your friends</CardTitle>
+          <CardTitle className="text-lg">Your Friends ({friends.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {friends.length === 0 ? (
             <div className="text-center py-8">
               <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">
-                No friends yet. Send friend requests to start chatting!
+                No friends yet. Accept friend requests to start chatting!
               </p>
             </div>
           ) : (

@@ -90,27 +90,6 @@ const HomePage: React.FC<HomePageProps> = ({
               </CardContent>
             </Card>
 
-            {/* Quick Access Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setActiveSection('community')}>
-                <CardContent className="p-4 text-center">
-                  <h3 className="text-base font-semibold mb-2">Community Posts</h3>
-                  <p className="text-gray-600 text-sm">
-                    Share your experiences and connect with fellow players
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => onNavigate('chat')}>
-                <CardContent className="p-4 text-center">
-                  <h3 className="text-base font-semibold mb-2">Chat & Messages</h3>
-                  <p className="text-gray-600 text-sm">
-                    Create groups and chat with friends
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
             {!username && (
               <Card>
                 <CardContent className="p-4 text-center">

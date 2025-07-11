@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home, Megaphone, BookOpen, ChevronRight, Users, UserPlus, MessageSquare, Shield } from "lucide-react";
+import { Home, Megaphone, BookOpen, ChevronRight, UserPlus, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserAvatar from './UserAvatar';
@@ -31,9 +31,9 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'community', label: 'Community Posts', icon: Users },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'tutorials', label: 'Tutorials', icon: BookOpen },
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
   ];
 
   useEffect(() => {
@@ -72,16 +72,40 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
     }
   };
 
-  // Mock admin messages
-  const adminMessages = [
-    { id: 1, message: 'Welcome to KVRP! Please read the rules.', timestamp: '2 hours ago', read: false },
-    { id: 2, message: 'Server maintenance scheduled for tonight.', timestamp: '1 day ago', read: true },
-    { id: 3, message: 'New features have been added to the platform.', timestamp: '3 days ago', read: true },
-  ];
-
   const handleSectionChange = (section: string) => {
     onSectionChange(section);
     if (onClose) onClose();
+  };
+
+  const handleAddFriend = async (friendName: string) => {
+    if (!username) {
+      toast.error('Please login to add friends');
+      return;
+    }
+
+    try {
+      // Insert friend request notification
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          from_user: username,
+          to_user: friendName,
+          type: 'friend_request',
+          message: `${username} sent you a friend request`,
+          read: false
+        });
+
+      if (error) {
+        console.error('Error sending friend request:', error);
+        toast.error('Failed to send friend request');
+        return;
+      }
+
+      toast.success(`Friend request sent to ${friendName}`);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error('Failed to send friend request');
+    }
   };
 
   return (
@@ -111,12 +135,12 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
         })}
       </div>
 
-      {/* Registered Users Section */}
+      {/* Suggested Friends Section */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
             <UserPlus className="w-4 h-4" />
-            Registered Users
+            Suggested Friends
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -133,7 +157,13 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
                       <p className="text-xs text-gray-500">Platform Member</p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="text-xs px-2 py-1">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs px-2 py-1"
+                    onClick={() => handleAddFriend(user.author_name)}
+                    disabled={!username}
+                  >
                     Add Friend
                   </Button>
                 </div>
@@ -147,66 +177,6 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
           )}
         </CardContent>
       </Card>
-
-      {/* Admin Messages Section */}
-      {username && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Admin Messages
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {adminMessages.map((msg) => (
-                <div key={msg.id} className={`p-2 rounded-lg hover:bg-gray-50 border-l-2 ${
-                  msg.read ? 'border-gray-300' : 'border-blue-500 bg-blue-50'
-                }`}>
-                  <div className="flex items-start gap-2">
-                    <MessageSquare className="w-3 h-3 text-gray-500 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-xs text-gray-800">{msg.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">{msg.timestamp}</p>
-                      {!msg.read && (
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1"></div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick Stats */}
-      {username && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Community Stats
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-600">Online Players:</span>
-                <span className="font-medium text-green-600">247</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-600">Total Members:</span>
-                <span className="font-medium">1,543</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-600">Your Friends:</span>
-                <span className="font-medium">12</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
