@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Home, Megaphone, BookOpen, ChevronRight, UserPlus, MessageSquare, Users, Search, Check, X, MoreVertical } from "lucide-react";
+import { Home, Megaphone, BookOpen, ChevronRight, UserPlus, MessageSquare, Users, Search, Check, X, MoreVertical, FileText, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserAvatar from './UserAvatar';
@@ -36,6 +35,22 @@ interface FriendRequest {
   timestamp: string;
 }
 
+interface Report {
+  id: string;
+  type: string;
+  description: string;
+  status: string;
+  timestamp: string;
+  admin_response?: string;
+}
+
+interface AdminMessage {
+  id: string;
+  message: string;
+  sender_type: string;
+  timestamp: string;
+}
+
 const SideNavigation: React.FC<SideNavigationProps> = ({ 
   activeSection, 
   onSectionChange,
@@ -47,6 +62,8 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [adminMessages, setAdminMessages] = useState<AdminMessage[]>([]);
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -59,10 +76,54 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
       fetchRegisteredUsers();
       fetchFriends();
       fetchFriendRequests();
+      fetchReports();
+      fetchAdminMessages();
     } else {
       setLoading(false);
     }
   }, [username]);
+
+  const fetchReports = async () => {
+    if (!username) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('*')
+        .eq('guest_name', username)
+        .order('timestamp', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching reports:', error);
+        return;
+      }
+
+      setReports(data || []);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+    }
+  };
+
+  const fetchAdminMessages = async () => {
+    if (!username) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('admin_messages')
+        .select('*')
+        .eq('guest_name', username)
+        .order('timestamp', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching admin messages:', error);
+        return;
+      }
+
+      setAdminMessages(data || []);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+    }
+  };
 
   const fetchRegisteredUsers = async () => {
     try {
@@ -326,6 +387,60 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
           );
         })}
       </div>
+
+      {/* Reports & Admin Messages */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Your Reports & Admin Messages ({reports.length + adminMessages.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {reports.length === 0 && adminMessages.length === 0 ? (
+            <div className="text-center py-4">
+              <MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-xs text-gray-500">No reports or messages yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {reports.map((report) => (
+                <div key={report.id} className="p-2 rounded-lg bg-blue-50 border">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-900 truncate">
+                        Report: {report.type}
+                      </p>
+                      <p className="text-xs text-gray-500 capitalize">
+                        Status: {report.status}
+                      </p>
+                    </div>
+                    <div className={`w-2 h-2 rounded-full ${
+                      report.status === 'resolved' ? 'bg-green-500' : 
+                      report.status === 'in_progress' ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}></div>
+                  </div>
+                </div>
+              ))}
+              {adminMessages.map((message) => (
+                <div key={message.id} className="p-2 rounded-lg bg-green-50 border">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-900 truncate">
+                        Admin Message
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {message.message}
+                      </p>
+                    </div>
+                    <MessageCircle className="w-3 h-3 text-green-600" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Friend Requests */}
       {friendRequests.length > 0 && (
