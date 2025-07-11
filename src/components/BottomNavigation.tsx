@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, MessageCircle, FileText, Settings, Users } from 'lucide-react';
+import { Home, MessageCircle, FileText, Settings } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 interface BottomNavigationProps {
@@ -16,7 +16,6 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
     { id: 'home', label: 'Home', icon: Home },
     { id: 'public-chat', label: 'Chat', icon: MessageCircle },
     { id: 'report', label: 'Report', icon: FileText },
-    { id: 'notifications', label: 'Community', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
