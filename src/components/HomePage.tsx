@@ -8,7 +8,6 @@ import PostsList from './PostsList';
 import SideNavigation from './SideNavigation';
 import AnnouncementsSection from './AnnouncementsSection';
 import TutorialsSection from './TutorialsSection';
-import FriendsSection from './FriendsSection';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -31,33 +30,31 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen =
         return <AnnouncementsSection username={username} />;
       case 'tutorials':
         return <TutorialsSection />;
-      case 'friends':
-        return <FriendsSection username={username} />;
       default:
         return (
           <>
             {/* Hero Section */}
             <div className="text-center mb-8">
-              <div className="bg-black text-white p-8 rounded-lg mb-6">
-                <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              <div className="bg-black text-white p-6 sm:p-8 rounded-lg mb-6">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
                   KVRP - KASI Vibes Role-Play
                 </h1>
-                <p className="text-lg md:text-xl text-gray-300 mb-4">
+                <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-4">
                   Welcome to the ultimate South African GTA roleplay experience
                 </p>
-                <p className="text-gray-400 max-w-2xl mx-auto">
+                <p className="text-gray-400 max-w-2xl mx-auto text-sm sm:text-base">
                   With GTAM ONLINE, KVRP brings the heart of the GTA MZANSI experience to a living online world with multiple players. 
                   Just what you choose to do in that world, it's up to you...
                 </p>
               </div>
             </div>
 
-            {/* Screenshots Gallery - Only first image */}
-            <div className="grid grid-cols-1 gap-4 mb-8">
-              <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden max-w-2xl mx-auto">
+            {/* Main Screenshot */}
+            <div className="mb-8">
+              <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden max-w-4xl mx-auto">
                 <img 
                   src="/lovable-uploads/f1ad0c6c-6319-448e-9962-50117e77175c.png" 
-                  alt="KVRP Screenshot 1" 
+                  alt="KVRP Screenshot" 
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -85,13 +82,15 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen =
             {username && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold">Community Posts</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold">Community Posts</h2>
                   <Button 
                     onClick={() => setShowPostCreator(!showPostCreator)}
                     className="flex items-center gap-2"
+                    size="sm"
                   >
                     <Plus className="w-4 h-4" />
-                    Create Post
+                    <span className="hidden sm:inline">Create Post</span>
+                    <span className="sm:hidden">Post</span>
                   </Button>
                 </div>
 
@@ -136,7 +135,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen =
           username={username}
         />
       )}
-      <div className="flex-1 container mx-auto p-4 pb-20">
+      <div className="flex-1 container mx-auto p-4 pb-20 max-w-none">
         {renderContent()}
       </div>
     </div>
