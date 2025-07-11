@@ -62,6 +62,36 @@ export type Database = {
         }
         Relationships: []
       }
+      announcements: {
+        Row: {
+          author: string
+          content: string
+          created_at: string
+          id: string
+          image_url: string | null
+          likes: number
+          title: string
+        }
+        Insert: {
+          author?: string
+          content: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          likes?: number
+          title: string
+        }
+        Update: {
+          author?: string
+          content?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          likes?: number
+          title?: string
+        }
+        Relationships: []
+      }
       muted_users: {
         Row: {
           id: string

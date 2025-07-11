@@ -3,15 +3,22 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sidebar } from "lucide-react";
+import UserAvatar from './UserAvatar';
 
 interface NavigationProps {
   currentPage: string;
   onNavigate: (page: string) => void;
   guestName: string | null;
+  onToggleSidebar?: () => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ currentPage, onNavigate, guestName }) => {
+const Navigation: React.FC<NavigationProps> = ({ 
+  currentPage, 
+  onNavigate, 
+  guestName,
+  onToggleSidebar 
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -43,6 +50,18 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, onNavigate, guestN
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center space-x-4">
+              {/* Sidebar toggle button */}
+              {currentPage === 'home' && onToggleSidebar && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggleSidebar}
+                  className="text-white hover:bg-white/10"
+                >
+                  <Sidebar className="w-5 h-5" />
+                </Button>
+              )}
+              
               <h1 
                 className="text-xl md:text-2xl font-bold cursor-pointer hover:text-blue-200 transition-colors" 
                 onClick={() => onNavigate('home')}
@@ -52,7 +71,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, onNavigate, guestN
             </div>
             
             {guestName && (
-              <div className="hidden md:flex items-center bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full">
+              <div className="hidden md:flex items-center bg-white/10 backdrop-blur-sm px-3 py-2 rounded-full gap-2">
+                <UserAvatar username={guestName} size="sm" />
                 <span className="text-sm">Welcome, {guestName}</span>
               </div>
             )}
@@ -84,7 +104,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, onNavigate, guestN
           {isMenuOpen && (
             <div className="md:hidden pb-4 space-y-2">
               {guestName && (
-                <div className="bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg mb-3">
+                <div className="bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg mb-3 flex items-center gap-2">
+                  <UserAvatar username={guestName} size="sm" />
                   <span className="text-sm">Welcome, {guestName}</span>
                 </div>
               )}
@@ -133,7 +154,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, onNavigate, guestN
             {adminError && (
               <p className="text-red-500 text-sm">{adminError}</p>
             )}
-            <Button onClick={handleAdminLogin} className="w-full">
+            <Button onClick={handleA
+
+inLogin} className="w-full">
               Login
             </Button>
           </div>

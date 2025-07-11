@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Play, ExternalLink, Clock } from "lucide-react";
+import { BookOpen, Play, ExternalLink, Clock, MessageCircle } from "lucide-react";
 
 const TutorialsSection: React.FC = () => {
   const tutorials = [

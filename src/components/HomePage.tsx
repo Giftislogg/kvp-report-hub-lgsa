@@ -6,13 +6,17 @@ import { Plus } from "lucide-react";
 import PostCreator from './PostCreator';
 import PostsList from './PostsList';
 import SideNavigation from './SideNavigation';
+import AnnouncementsSection from './AnnouncementsSection';
+import TutorialsSection from './TutorialsSection';
+import FriendsSection from './FriendsSection';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
   username?: string;
+  sidebarOpen?: boolean;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ onNavigate, username }) => {
+const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen = true }) => {
   const [showPostCreator, setShowPostCreator] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeSection, setActiveSection] = useState('home');
@@ -27,6 +31,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username }) => {
         return <AnnouncementsSection username={username} />;
       case 'tutorials':
         return <TutorialsSection />;
+      case 'friends':
+        return <FriendsSection username={username} />;
       default:
         return (
           <>
@@ -123,10 +129,13 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex">
-      <SideNavigation 
-        activeSection={activeSection} 
-        onSectionChange={setActiveSection} 
-      />
+      {sidebarOpen && (
+        <SideNavigation 
+          activeSection={activeSection} 
+          onSectionChange={setActiveSection}
+          username={username}
+        />
+      )}
       <div className="flex-1 container mx-auto p-4 pb-20">
         {renderContent()}
       </div>
