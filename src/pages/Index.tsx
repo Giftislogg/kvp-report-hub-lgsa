@@ -117,12 +117,12 @@ const Index = () => {
 
   const renderCurrentPage = () => {
     if (!username && ['report', 'public-chat', 'private-chat', 'messages', 'notifications', 'settings'].includes(currentPage)) {
-      return <HomePage onNavigate={handleNavigate} />;
+      return <HomePage onNavigate={handleNavigate} currentPage={currentPage} />;
     }
 
     switch (currentPage) {
       case 'home':
-        return <HomePage onNavigate={handleNavigate} username={username || undefined} />;
+        return <HomePage onNavigate={handleNavigate} username={username || undefined} currentPage={currentPage} />;
       case 'report':
         return <ReportForm guestName={username!} />;
       case 'public-chat':
@@ -138,7 +138,7 @@ const Index = () => {
       case 'admin':
         return <AdminPanel />;
       default:
-        return <HomePage onNavigate={handleNavigate} username={username || undefined} />;
+        return <HomePage onNavigate={handleNavigate} username={username || undefined} currentPage={currentPage} />;
     }
   };
 
