@@ -33,7 +33,6 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
     { id: 'home', label: 'Home', icon: Home },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'tutorials', label: 'Tutorials', icon: BookOpen },
-    { id: 'chat', label: 'Chat', icon: MessageSquare },
   ];
 
   useEffect(() => {

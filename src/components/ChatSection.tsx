@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Users, Plus, MoreHorizontal, Search } from "lucide-react";
+import { MessageCircle, Users, Plus, MoreHorizontal, Search, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserAvatar from './UserAvatar';
 
 interface ChatSectionProps {
   username?: string;
+  onShowPublicChat: () => void;
+  onBackToChat: () => void;
 }
 
 interface ChatGroup {
@@ -29,7 +31,7 @@ interface Friend {
   lastSeen: string;
 }
 
-const ChatSection: React.FC<ChatSectionProps> = ({ username }) => {
+const ChatSection: React.FC<ChatSectionProps> = ({ username, onShowPublicChat, onBackToChat }) => {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -104,6 +106,12 @@ const ChatSection: React.FC<ChatSectionProps> = ({ username }) => {
     setChatGroups([...chatGroups, newGroup]);
     setGroupName('');
     setShowCreateGroup(false);
+  };
+
+  const handleGroupClick = (groupId: string) => {
+    if (groupId === 'gtamo-forever') {
+      onShowPublicChat();
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -196,7 +204,11 @@ const ChatSection: React.FC<ChatSectionProps> = ({ username }) => {
           
           <div className="space-y-3">
             {chatGroups.map((group) => (
-              <div key={group.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer border">
+              <div 
+                key={group.id} 
+                className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer border"
+                onClick={() => handleGroupClick(group.id)}
+              >
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 ${group.isPublic ? 'bg-green-100' : 'bg-blue-100'} rounded-full flex items-center justify-center`}>
                     <Users className={`w-6 h-6 ${group.isPublic ? 'text-green-600' : 'text-blue-600'}`} />
