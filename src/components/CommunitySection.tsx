@@ -24,7 +24,7 @@ const CommunitySection: React.FC<CommunitySectionProps> = ({ username }) => {
       <div className="space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Community Posts</h1>
-          <p className="text-gray-600">Connect with the KVRP community</p>
+          <p className="text-gray-600">Connect with the KVRP community through posts</p>
         </div>
         <Card>
           <CardContent className="p-8 text-center">
