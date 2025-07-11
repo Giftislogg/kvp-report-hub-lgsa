@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import PostCreator from './PostCreator';
 import PostsList from './PostsList';
 import SideNavigation from './SideNavigation';
@@ -13,9 +14,15 @@ interface HomePageProps {
   onNavigate: (page: string) => void;
   username?: string;
   sidebarOpen?: boolean;
+  onCloseSidebar?: () => void;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen = true }) => {
+const HomePage: React.FC<HomePageProps> = ({ 
+  onNavigate, 
+  username, 
+  sidebarOpen = false,
+  onCloseSidebar 
+}) => {
   const [showPostCreator, setShowPostCreator] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeSection, setActiveSection] = useState('home');
@@ -34,15 +41,15 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen =
         return (
           <>
             {/* Hero Section */}
-            <div className="text-center mb-8">
-              <div className="bg-black text-white p-6 sm:p-8 rounded-lg mb-6">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
+            <div className="text-center mb-6">
+              <div className="bg-black text-white p-4 sm:p-6 rounded-lg mb-4">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3">
                   KVRP - KASI Vibes Role-Play
                 </h1>
-                <p className="text-base sm:text-lg md:text-xl text-gray-300 mb-4">
+                <p className="text-sm sm:text-base md:text-lg text-gray-300 mb-3">
                   Welcome to the ultimate South African GTA roleplay experience
                 </p>
-                <p className="text-gray-400 max-w-2xl mx-auto text-sm sm:text-base">
+                <p className="text-gray-400 max-w-2xl mx-auto text-xs sm:text-sm">
                   With GTAM ONLINE, KVRP brings the heart of the GTA MZANSI experience to a living online world with multiple players. 
                   Just what you choose to do in that world, it's up to you...
                 </p>
@@ -50,8 +57,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen =
             </div>
 
             {/* Main Screenshot */}
-            <div className="mb-8">
-              <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden max-w-4xl mx-auto">
+            <div className="mb-6">
+              <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
                 <img 
                   src="/lovable-uploads/f1ad0c6c-6319-448e-9962-50117e77175c.png" 
                   alt="KVRP Screenshot" 
@@ -61,17 +68,17 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen =
             </div>
 
             {/* Community Section */}
-            <Card className="mb-8">
+            <Card className="mb-6">
               <CardHeader>
-                <CardTitle className="text-center">Join Our Community</CardTitle>
+                <CardTitle className="text-center text-lg">Join Our Community</CardTitle>
               </CardHeader>
               <CardContent className="text-center">
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600 mb-4 text-sm">
                   Connect with fellow players, share your experiences, and stay updated with the latest news from KVRP.
                 </p>
                 <Button 
                   onClick={() => window.open('https://lgsa-tm.com', '_blank')}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 text-sm"
                 >
                   Visit LGSA-TM.com
                 </Button>
@@ -80,9 +87,9 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen =
 
             {/* Posts Section */}
             {username && (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl sm:text-2xl font-bold">Community Posts</h2>
+                  <h2 className="text-lg sm:text-xl font-bold">Community Posts</h2>
                   <Button 
                     onClick={() => setShowPostCreator(!showPostCreator)}
                     className="flex items-center gap-2"
@@ -108,16 +115,14 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen =
 
             {!username && (
               <Card>
-                <CardContent className="p-6 text-center">
-                  <h3 className="text-xl font-semibold mb-2">Join the Community</h3>
-                  <p className="text-gray-600 mb-4">
+                <CardContent className="p-4 text-center">
+                  <h3 className="text-lg font-semibold mb-2">Join the Community</h3>
+                  <p className="text-gray-600 mb-4 text-sm">
                     Login or create an account to view and create posts, chat with other players, and access all features.
                   </p>
-                  <div className="space-x-2">
-                    <Button onClick={() => onNavigate('public-chat')}>
-                      Get Started
-                    </Button>
-                  </div>
+                  <Button onClick={() => onNavigate('public-chat')}>
+                    Get Started
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -127,15 +132,24 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, username, sidebarOpen =
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex">
-      {sidebarOpen && (
-        <SideNavigation 
-          activeSection={activeSection} 
-          onSectionChange={setActiveSection}
-          username={username}
-        />
-      )}
-      <div className="flex-1 container mx-auto p-4 pb-20 max-w-none">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Mobile Sidebar Sheet */}
+      <Sheet open={sidebarOpen} onOpenChange={onCloseSidebar}>
+        <SheetContent side="left" className="p-0 w-[280px]">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle>Navigation</SheetTitle>
+          </SheetHeader>
+          <SideNavigation 
+            activeSection={activeSection} 
+            onSectionChange={setActiveSection}
+            username={username}
+            onClose={onCloseSidebar}
+          />
+        </SheetContent>
+      </Sheet>
+
+      {/* Main Content */}
+      <div className="container mx-auto p-3 sm:p-4 pb-20 max-w-4xl">
         {renderContent()}
       </div>
     </div>

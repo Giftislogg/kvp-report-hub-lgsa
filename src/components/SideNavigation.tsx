@@ -9,12 +9,14 @@ interface SideNavigationProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
   username?: string;
+  onClose?: () => void;
 }
 
 const SideNavigation: React.FC<SideNavigationProps> = ({ 
   activeSection, 
   onSectionChange,
-  username 
+  username,
+  onClose 
 }) => {
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -46,13 +48,16 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
     }
   };
 
+  const handleSectionChange = (section: string) => {
+    onSectionChange(section);
+    if (onClose) onClose();
+  };
+
   return (
-    <aside className="w-80 bg-white border-r border-gray-200 shadow-sm h-full overflow-y-auto">
-      <div className="p-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Navigation</h2>
-        
+    <div className="h-full overflow-y-auto bg-white">
+      <div className="p-4 space-y-4">
         {/* Main Navigation */}
-        <nav className="space-y-2 mb-6">
+        <div className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -61,7 +66,7 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
               <Button
                 key={item.id}
                 variant={isActive ? "default" : "ghost"}
-                onClick={() => onSectionChange(item.id)}
+                onClick={() => handleSectionChange(item.id)}
                 className={`w-full justify-start gap-3 ${
                   isActive 
                     ? 'bg-blue-600 text-white hover:bg-blue-700' 
@@ -74,11 +79,11 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
               </Button>
             );
           })}
-        </nav>
+        </div>
 
         {/* Friend Suggestions Section */}
         {username && (
-          <Card className="mb-4">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <UserPlus className="w-4 h-4" />
@@ -86,20 +91,20 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
                 {friendSuggestions.map((friend) => (
                   <div key={friend.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
                     <div className="flex items-center gap-2">
                       <div className="relative">
                         <UserAvatar username={friend.name} size="sm" />
-                        <div className={`absolute -bottom-1 -right-1 w-3 h-3 ${getStatusColor(friend.status)} rounded-full border-2 border-white`}></div>
+                        <div className={`absolute -bottom-1 -right-1 w-2.5 h-2.5 ${getStatusColor(friend.status)} rounded-full border-2 border-white`}></div>
                       </div>
                       <div>
                         <p className="text-sm font-medium">{friend.name}</p>
                         <p className="text-xs text-gray-500">{friend.mutual} mutual friends</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline" className="text-xs">
+                    <Button size="sm" variant="outline" className="text-xs px-2 py-1">
                       Add
                     </Button>
                   </div>
@@ -111,7 +116,7 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
 
         {/* Admin Messages Section */}
         {username && (
-          <Card className="mb-4">
+          <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Shield className="w-4 h-4" />
@@ -119,18 +124,18 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
                 {adminMessages.map((msg) => (
                   <div key={msg.id} className={`p-2 rounded-lg hover:bg-gray-50 border-l-2 ${
                     msg.read ? 'border-gray-300' : 'border-blue-500 bg-blue-50'
                   }`}>
                     <div className="flex items-start gap-2">
-                      <MessageSquare className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                      <MessageSquare className="w-3 h-3 text-gray-500 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-sm text-gray-800">{msg.message}</p>
+                        <p className="text-xs text-gray-800">{msg.message}</p>
                         <p className="text-xs text-gray-500 mt-1">{msg.timestamp}</p>
                         {!msg.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1"></div>
                         )}
                       </div>
                     </div>
@@ -155,15 +160,15 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600">Online Players:</span>
                   <span className="font-medium text-green-600">247</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600">Total Members:</span>
                   <span className="font-medium">1,543</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs">
                   <span className="text-gray-600">Your Friends:</span>
                   <span className="font-medium">12</span>
                 </div>
@@ -172,7 +177,7 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
           </Card>
         )}
       </div>
-    </aside>
+    </div>
   );
 };
 
