@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Heart, User, Calendar } from "lucide-react";
+import { Heart, User, Calendar, ThumbsDown } from "lucide-react";
 
 interface Post {
   id: string;
@@ -13,6 +13,8 @@ interface Post {
   title: string;
   content: string;
   likes: number;
+  dislikes: number;
+  image_url: string | null;
   timestamp: string;
 }
 
@@ -23,11 +25,13 @@ interface PostsListProps {
 const PostsList: React.FC<PostsListProps> = ({ username }) => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [dislikedPosts, setDislikedPosts] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchPosts();
     fetchUserLikes();
+    fetchUserDislikes();
 
     // Subscribe to real-time updates
     const channel = supabase
@@ -90,8 +94,28 @@ const PostsList: React.FC<PostsListProps> = ({ username }) => {
     }
   };
 
+  const fetchUserDislikes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('post_dislikes')
+        .select('post_id')
+        .eq('user_name', username);
+
+      if (error) {
+        console.error('Error fetching user dislikes:', error);
+        return;
+      }
+
+      const dislikedPostIds = new Set(data?.map(dislike => dislike.post_id) || []);
+      setDislikedPosts(dislikedPostIds);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+    }
+  };
+
   const handleLike = async (postId: string) => {
     const isLiked = likedPosts.has(postId);
+    const isDisliked = dislikedPosts.has(postId);
     
     try {
       if (isLiked) {
@@ -102,14 +126,12 @@ const PostsList: React.FC<PostsListProps> = ({ username }) => {
           .eq('post_id', postId)
           .eq('user_name', username);
         
-        // Update local state
         setLikedPosts(prev => {
           const newSet = new Set(prev);
           newSet.delete(postId);
           return newSet;
         });
         
-        // Update post likes count
         const post = posts.find(p => p.id === postId);
         if (post) {
           await supabase
@@ -118,7 +140,30 @@ const PostsList: React.FC<PostsListProps> = ({ username }) => {
             .eq('id', postId);
         }
       } else {
-        // Like
+        // Remove dislike if exists
+        if (isDisliked) {
+          await supabase
+            .from('post_dislikes')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_name', username);
+          
+          setDislikedPosts(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(postId);
+            return newSet;
+          });
+
+          const post = posts.find(p => p.id === postId);
+          if (post) {
+            await supabase
+              .from('posts')
+              .update({ dislikes: Math.max(0, post.dislikes - 1) })
+              .eq('id', postId);
+          }
+        }
+
+        // Add like
         await supabase
           .from('post_likes')
           .insert({
@@ -126,10 +171,8 @@ const PostsList: React.FC<PostsListProps> = ({ username }) => {
             user_name: username
           });
         
-        // Update local state
         setLikedPosts(prev => new Set([...prev, postId]));
         
-        // Update post likes count
         const post = posts.find(p => p.id === postId);
         if (post) {
           await supabase
@@ -141,6 +184,80 @@ const PostsList: React.FC<PostsListProps> = ({ username }) => {
     } catch (error) {
       console.error('Error handling like:', error);
       toast.error("Failed to update like");
+    }
+  };
+
+  const handleDislike = async (postId: string) => {
+    const isDisliked = dislikedPosts.has(postId);
+    const isLiked = likedPosts.has(postId);
+    
+    try {
+      if (isDisliked) {
+        // Remove dislike
+        await supabase
+          .from('post_dislikes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_name', username);
+        
+        setDislikedPosts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          return newSet;
+        });
+        
+        const post = posts.find(p => p.id === postId);
+        if (post) {
+          await supabase
+            .from('posts')
+            .update({ dislikes: Math.max(0, post.dislikes - 1) })
+            .eq('id', postId);
+        }
+      } else {
+        // Remove like if exists
+        if (isLiked) {
+          await supabase
+            .from('post_likes')
+            .delete()
+            .eq('post_id', postId)
+            .eq('user_name', username);
+          
+          setLikedPosts(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(postId);
+            return newSet;
+          });
+
+          const post = posts.find(p => p.id === postId);
+          if (post) {
+            await supabase
+              .from('posts')
+              .update({ likes: Math.max(0, post.likes - 1) })
+              .eq('id', postId);
+          }
+        }
+
+        // Add dislike
+        await supabase
+          .from('post_dislikes')
+          .insert({
+            post_id: postId,
+            user_name: username
+          });
+        
+        setDislikedPosts(prev => new Set([...prev, postId]));
+        
+        const post = posts.find(p => p.id === postId);
+        if (post) {
+          await supabase
+            .from('posts')
+            .update({ dislikes: post.dislikes + 1 })
+            .eq('id', postId);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling dislike:', error);
+      toast.error("Failed to update dislike");
     }
   };
 
@@ -182,20 +299,47 @@ const PostsList: React.FC<PostsListProps> = ({ username }) => {
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 mb-4 whitespace-pre-wrap">{post.content}</p>
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleLike(post.id)}
-                  className={`flex items-center gap-2 ${
-                    likedPosts.has(post.id) ? 'text-red-500 hover:text-red-600' : 'text-gray-500 hover:text-red-500'
-                  }`}
-                >
-                  <Heart 
-                    className={`w-4 h-4 ${likedPosts.has(post.id) ? 'fill-current' : ''}`} 
+              
+              {post.image_url && (
+                <div className="mb-4">
+                  <img 
+                    src={post.image_url} 
+                    alt="Post image" 
+                    className="w-full max-h-96 object-cover rounded-md border"
                   />
-                  {post.likes} {post.likes === 1 ? 'Like' : 'Likes'}
-                </Button>
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between">
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleLike(post.id)}
+                    className={`flex items-center gap-2 ${
+                      likedPosts.has(post.id) ? 'text-red-500 hover:text-red-600' : 'text-gray-500 hover:text-red-500'
+                    }`}
+                  >
+                    <Heart 
+                      className={`w-4 h-4 ${likedPosts.has(post.id) ? 'fill-current' : ''}`} 
+                    />
+                    {post.likes}
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDislike(post.id)}
+                    className={`flex items-center gap-2 ${
+                      dislikedPosts.has(post.id) ? 'text-blue-500 hover:text-blue-600' : 'text-gray-500 hover:text-blue-500'
+                    }`}
+                  >
+                    <ThumbsDown 
+                      className={`w-4 h-4 ${dislikedPosts.has(post.id) ? 'fill-current' : ''}`} 
+                    />
+                    {post.dislikes}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

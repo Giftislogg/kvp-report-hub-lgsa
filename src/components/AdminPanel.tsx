@@ -390,6 +390,17 @@ const AdminPanel: React.FC = () => {
         return;
       }
 
+      // Also add to report replies if we have a selected report for this guest
+      if (selectedReport && selectedReport.guest_name === selectedGuest) {
+        setReportReplies(prev => [...prev, {
+          id: Date.now().toString(),
+          guest_name: selectedGuest,
+          message: newAdminMessage.trim(),
+          sender_type: 'admin',
+          timestamp: new Date().toISOString()
+        }]);
+      }
+
       toast.success("Message sent to user");
       setNewAdminMessage('');
       fetchAllData();

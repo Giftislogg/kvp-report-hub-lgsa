@@ -84,7 +84,7 @@ const AdminMessages: React.FC<AdminMessagesProps> = ({ guestName }) => {
         .insert({
           guest_name: guestName,
           message: newMessage.trim(),
-          sender_type: 'guest'
+          sender_type: 'user'
         });
 
       if (error) {
@@ -131,15 +131,15 @@ const AdminMessages: React.FC<AdminMessagesProps> = ({ guestName }) => {
               </div>
             ) : (
               messages.map((msg) => (
-                <div key={msg.id} className={`mb-4 ${msg.sender_type === 'guest' ? 'text-right' : 'text-left'}`}>
+                <div key={msg.id} className={`mb-4 ${msg.sender_type === 'user' ? 'text-right' : 'text-left'}`}>
                   <div className={`inline-block max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
-                    msg.sender_type === 'guest' 
+                    msg.sender_type === 'user' 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-destructive/10 border border-destructive/20'
                   }`}>
                     <div className="flex items-baseline gap-2 mb-1">
                       <span className="font-semibold text-xs">
-                        {msg.sender_type === 'guest' ? 'You' : 'Administrator'}
+                        {msg.sender_type === 'user' ? 'You' : 'Administrator'}
                       </span>
                       <span className="text-xs opacity-70">
                         {formatTime(msg.timestamp)}

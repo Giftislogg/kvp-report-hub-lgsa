@@ -10,6 +10,7 @@ import TutorialsSection from './TutorialsSection';
 import CommunitySection from './CommunitySection';
 import ChatSection from './ChatSection';
 import PublicChat from './PublicChat';
+import PostsPage from './PostsPage';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -51,6 +52,8 @@ const HomePage: React.FC<HomePageProps> = ({
           return <PublicChat guestName={username} />;
         }
         return <ChatSection username={username} onShowPublicChat={handleShowPublicChat} onBackToChat={handleBackToChat} />;
+      case 'posts':
+        return <PostsPage username={username} />;
       case 'notifications':
         return <CommunitySection username={username} />;
       default:

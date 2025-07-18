@@ -146,6 +146,35 @@ export type Database = {
         }
         Relationships: []
       }
+      post_dislikes: {
+        Row: {
+          id: string
+          post_id: string
+          timestamp: string
+          user_name: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          timestamp?: string
+          user_name: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          timestamp?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_dislikes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_likes: {
         Row: {
           id: string
@@ -179,7 +208,9 @@ export type Database = {
         Row: {
           author_name: string
           content: string
+          dislikes: number
           id: string
+          image_url: string | null
           likes: number
           timestamp: string
           title: string
@@ -187,7 +218,9 @@ export type Database = {
         Insert: {
           author_name: string
           content: string
+          dislikes?: number
           id?: string
+          image_url?: string | null
           likes?: number
           timestamp?: string
           title: string
@@ -195,7 +228,9 @@ export type Database = {
         Update: {
           author_name?: string
           content?: string
+          dislikes?: number
           id?: string
+          image_url?: string | null
           likes?: number
           timestamp?: string
           title?: string
