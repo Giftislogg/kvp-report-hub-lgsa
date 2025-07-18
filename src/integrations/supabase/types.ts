@@ -92,6 +92,30 @@ export type Database = {
         }
         Relationships: []
       }
+      friends: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          user1: string
+          user2: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          user1: string
+          user2: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          user1?: string
+          user2?: string
+        }
+        Relationships: []
+      }
       muted_users: {
         Row: {
           id: string
@@ -315,6 +339,39 @@ export type Database = {
           status?: string | null
           timestamp?: string
           type?: string
+        }
+        Relationships: []
+      }
+      tutorials: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          duration: string | null
+          id: string
+          thumbnail_url: string | null
+          title: string
+          youtube_url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          duration?: string | null
+          id?: string
+          thumbnail_url?: string | null
+          title: string
+          youtube_url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          duration?: string | null
+          id?: string
+          thumbnail_url?: string | null
+          title?: string
+          youtube_url?: string
         }
         Relationships: []
       }

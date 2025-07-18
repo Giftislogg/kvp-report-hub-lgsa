@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Archive, UserX, Megaphone, X, CheckCircle, Send } from "lucide-react";
+import { Trash2, Archive, UserX, Megaphone, X, CheckCircle, Send, Plus } from "lucide-react";
+import TutorialManager from './TutorialManager';
 
 interface Report {
   id: string;
@@ -76,6 +77,9 @@ const AdminPanel: React.FC = () => {
   const [muteUsername, setMuteUsername] = useState('');
   const [muteReason, setMuteReason] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementContent, setAnnouncementContent] = useState('');
+  const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
 
   useEffect(() => {
     fetchAllData();
@@ -432,6 +436,61 @@ const AdminPanel: React.FC = () => {
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
+  };
+
+  const handleCreateAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!announcementTitle.trim() || !announcementContent.trim()) {
+      toast.error('Title and content are required');
+      return;
+    }
+
+    try {
+      let imageUrl = '';
+      
+      if (announcementImage) {
+        const fileName = `announcement-${Date.now()}-${announcementImage.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('post-images')
+          .upload(fileName, announcementImage);
+
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          toast.error('Failed to upload image');
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(fileName);
+        
+        imageUrl = publicUrl;
+      }
+
+      const { error } = await supabase
+        .from('announcements')
+        .insert({
+          title: announcementTitle,
+          content: announcementContent,
+          image_url: imageUrl || null,
+          author: 'Admin'
+        });
+
+      if (error) {
+        console.error('Error creating announcement:', error);
+        toast.error('Failed to create announcement');
+        return;
+      }
+
+      toast.success('Announcement created successfully');
+      setAnnouncementTitle('');
+      setAnnouncementContent('');
+      setAnnouncementImage(null);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error('Failed to create announcement');
+    }
   };
 
   if (isLoading) {

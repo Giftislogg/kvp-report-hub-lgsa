@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import UserAvatar from './UserAvatar';
 
 interface PrivateChatProps {
   guestName: string;
@@ -203,8 +204,11 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName, initialTarget }) =
               </div>
             ) : (
               messages.map((msg) => (
-                <div key={msg.id} className={`mb-3 ${msg.sender_name === guestName ? 'text-right' : 'text-left'}`}>
-                  <div className={`inline-block max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
+                <div key={msg.id} className={`mb-3 flex items-start gap-2 ${msg.sender_name === guestName ? 'justify-end' : 'justify-start'}`}>
+                  {msg.sender_name !== guestName && (
+                    <UserAvatar username={msg.sender_name} size="sm" />
+                  )}
+                  <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
                     msg.sender_name === guestName 
                       ? 'bg-primary text-primary-foreground' 
                       : 'bg-muted'
@@ -219,6 +223,9 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName, initialTarget }) =
                     </div>
                     <div className="text-sm">{msg.message}</div>
                   </div>
+                  {msg.sender_name === guestName && (
+                    <UserAvatar username={msg.sender_name} size="sm" />
+                  )}
                 </div>
               ))
             )}

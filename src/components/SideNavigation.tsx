@@ -6,6 +6,8 @@ import { Home, Megaphone, BookOpen, ChevronRight, UserPlus, MessageSquare, Users
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserAvatar from './UserAvatar';
+import AdminMessagesChat from './AdminMessagesChat';
+import FriendChat from './FriendChat';
 
 interface SideNavigationProps {
   activeSection: string;
@@ -64,6 +66,7 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<Report[]>([]);
   const [adminMessages, setAdminMessages] = useState<AdminMessage[]>([]);
+  const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
 
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -161,12 +164,12 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
     if (!username) return;
 
     try {
-      // Fetch accepted friend relationships
-      const { data: notifications, error } = await supabase
-        .from('notifications')
-        .select('from_user, to_user')
-        .eq('type', 'friend_accepted')
-        .or(`from_user.eq.${username},to_user.eq.${username}`);
+      // Fetch accepted friend relationships from friends table
+      const { data: friendships, error } = await supabase
+        .from('friends')
+        .select('user1, user2')
+        .eq('status', 'accepted')
+        .or(`user1.eq.${username},user2.eq.${username}`);
 
       if (error) {
         console.error('Error fetching friends:', error);
@@ -174,8 +177,8 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
       }
 
       // Extract friend names
-      const friendNames = notifications?.map(notif => 
-        notif.from_user === username ? notif.to_user : notif.from_user
+      const friendNames = friendships?.map(friendship => 
+        friendship.user1 === username ? friendship.user2 : friendship.user1
       ) || [];
 
       // Create friend objects with mock status
@@ -227,6 +230,17 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
     }
 
     try {
+      // Check if they're already friends or if request already exists
+      const { data: existingNotifications } = await supabase
+        .from('notifications')
+        .select('*')
+        .or(`and(from_user.eq.${username},to_user.eq.${friendName},type.eq.friend_request),and(from_user.eq.${friendName},to_user.eq.${username},type.eq.friend_request)`);
+
+      if (existingNotifications && existingNotifications.length > 0) {
+        toast.error('Friend request already sent or received');
+        return;
+      }
+
       // Insert friend request notification
       const { error } = await supabase
         .from('notifications')
@@ -261,6 +275,20 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
 
       if (updateError) {
         console.error('Error updating notification:', updateError);
+        return;
+      }
+
+      // Create actual friendship in friends table
+      const { error: friendError } = await supabase
+        .from('friends')
+        .insert({
+          user1: username!,
+          user2: fromUser,
+          status: 'accepted'
+        });
+
+      if (friendError) {
+        console.error('Error creating friendship:', friendError);
         return;
       }
 
@@ -423,19 +451,7 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
                 </div>
               ))}
               {adminMessages.map((message) => (
-                <div key={message.id} className="p-2 rounded-lg bg-green-50 border">
-                  <div className="flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-gray-900 truncate">
-                        Admin Message
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {message.message}
-                      </p>
-                    </div>
-                    <MessageCircle className="w-3 h-3 text-green-600" />
-                  </div>
-                </div>
+                <AdminMessagesChat key={message.id} guestName={username!} />
               ))}
             </div>
           )}
