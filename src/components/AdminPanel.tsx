@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trash2, Archive, UserX, Megaphone, X, CheckCircle, Send, Plus } from "lucide-react";
+import { Trash2, Archive, UserX, Megaphone, X, CheckCircle, Send, Plus, MessageCircle, Users } from "lucide-react";
 import TutorialManager from './TutorialManager';
 
 interface Report {
@@ -80,6 +80,7 @@ const AdminPanel: React.FC = () => {
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementContent, setAnnouncementContent] = useState('');
   const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
+  const [selectedTab, setSelectedTab] = useState('reports');
 
   useEffect(() => {
     fetchAllData();
@@ -500,20 +501,22 @@ const AdminPanel: React.FC = () => {
         .delete()
         .eq('id', announcementId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting announcement:', error);
+        toast.error('Failed to delete announcement');
+        return;
+      }
 
-      // Remove announcement from state if we were tracking it
-      fetchAllData();
-      toast.success('Announcement deleted successfully');
+      toast.success('Announcement deleted');
     } catch (error) {
-      console.error('Error deleting announcement:', error);
+      console.error('Unexpected error:', error);
       toast.error('Failed to delete announcement');
     }
   };
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6 pb-20">
         <Card>
           <CardContent className="p-6">
             <div className="text-center">Loading admin panel...</div>
@@ -524,411 +527,581 @@ const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-6">
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-lg mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Admin Control Panel</h1>
-        <p className="text-red-100">Manage reports, monitor chats, moderate posts, and communicate with users</p>
-      </div>
-      
-      <Tabs defaultValue="reports" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="public-chat">Public Chat</TabsTrigger>
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="moderation">Moderation</TabsTrigger>
-          <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-        </TabsList>
+    <div className="container mx-auto p-6 pb-20">
+      <Card className="shadow-xl border-0 bg-gradient-to-r from-blue-50 to-purple-50">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
+          <CardTitle className="text-center text-3xl font-bold">Admin Control Panel</CardTitle>
+          <p className="text-center text-blue-100">
+            Manage reports, messages, users, and announcements
+          </p>
+        </CardHeader>
+        <CardContent className="p-8">
+          {/* Main Action Buttons Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <Button 
+              onClick={() => setSelectedTab("reports")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 shadow-lg"
+            >
+              <Trash2 className="w-6 h-6" />
+              <span className="font-semibold">Manage Reports</span>
+            </Button>
+            
+            <Button 
+              onClick={() => setSelectedTab("messages")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0 shadow-lg"
+            >
+              <MessageCircle className="w-6 h-6" />
+              <span className="font-semibold">Public Messages</span>
+            </Button>
+            
+            <Button 
+              onClick={() => setSelectedTab("private")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 shadow-lg"
+            >
+              <Users className="w-6 h-6" />
+              <span className="font-semibold">Private Chats</span>
+            </Button>
+            
+            <Button 
+              onClick={() => setSelectedTab("admin-messages")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-0 shadow-lg"
+            >
+              <Send className="w-6 h-6" />
+              <span className="font-semibold">Admin Chat</span>
+            </Button>
+            
+            <Button 
+              onClick={() => setSelectedTab("posts")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 shadow-lg"
+            >
+              <Archive className="w-6 h-6" />
+              <span className="font-semibold">Manage Posts</span>
+            </Button>
+            
+            <Button 
+              onClick={() => setSelectedTab("announcements")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white border-0 shadow-lg"
+            >
+              <Megaphone className="w-6 h-6" />
+              <span className="font-semibold">Announcements</span>
+            </Button>
+            
+            <Button 
+              onClick={() => setSelectedTab("tutorials")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white border-0 shadow-lg"
+            >
+              <Plus className="w-6 h-6" />
+              <span className="font-semibold">Tutorials</span>
+            </Button>
+            
+            <Button 
+              onClick={() => setSelectedTab("mute")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white border-0 shadow-lg"
+            >
+              <UserX className="w-6 h-6" />
+              <span className="font-semibold">Mute Users</span>
+            </Button>
+          </div>
 
-        <TabsContent value="reports">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>All Reports ({reports.length})</span>
-                  <Badge variant="secondary">{reports.filter(r => !r.admin_response).length} pending</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {reports.map((report) => (
-                    <div
-                      key={report.id}
-                      className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
-                        selectedReport?.id === report.id ? 'bg-muted border-primary' : ''
-                      }`}
-                      onClick={() => setSelectedReport(report)}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">{report.type}</Badge>
-                          <span className="text-sm text-muted-foreground">
-                            by {report.guest_name}
-                          </span>
-                        </div>
-                        <div className="flex gap-1">
-                          {report.admin_response && (
-                            <Badge className="bg-green-100 text-green-800">Responded</Badge>
-                          )}
-                          {report.status === 'closed' && (
-                            <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <p className="text-sm truncate mb-2">{report.description}</p>
-                      <div className="flex justify-between items-center">
-                        <p className="text-xs text-muted-foreground">
-                          {formatTime(report.timestamp)}
-                        </p>
-                        <div className="flex gap-1">
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              closeReport(report.id);
-                            }}
-                            variant="outline"
-                            size="sm"
-                            className="text-xs px-2 py-1 h-auto"
-                          >
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Close
-                          </Button>
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteReport(report.id);
-                            }}
-                            variant="outline"
-                            size="sm"
-                            className="text-xs px-2 py-1 h-auto text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+          {/* Content Area */}
+          <div className="bg-white rounded-lg p-6 shadow-lg border">
+            {selectedTab === "announcements" && (
+              <div className="space-y-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Create New Announcement</h3>
+                <form onSubmit={handleCreateAnnouncement} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Announcement Title
+                    </label>
+                    <Input
+                      value={announcementTitle}
+                      onChange={(e) => setAnnouncementTitle(e.target.value)}
+                      placeholder="Enter announcement title"
+                      required
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Content
+                    </label>
+                    <Textarea
+                      value={announcementContent}
+                      onChange={(e) => setAnnouncementContent(e.target.value)}
+                      placeholder="Enter announcement content"
+                      required
+                      className="w-full min-h-[120px]"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Image (Optional)
+                    </label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setAnnouncementImage(e.target.files?.[0] || null)}
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                  >
+                    <Megaphone className="w-4 h-4 mr-2" />
+                    Create Announcement
+                  </Button>
+                </form>
+              </div>
+            )}
+
+            {selectedTab === "mute" && (
+              <div className="space-y-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Mute User</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Username to Mute
+                    </label>
+                    <Input
+                      value={muteUsername}
+                      onChange={(e) => setMuteUsername(e.target.value)}
+                      placeholder="Enter username"
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Reason (Optional)
+                    </label>
+                    <Textarea
+                      value={muteReason}
+                      onChange={(e) => setMuteReason(e.target.value)}
+                      placeholder="Enter reason for muting"
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <Button 
+                    onClick={muteUser}
+                    className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
+                  >
+                    <UserX className="w-4 h-4 mr-2" />
+                    Mute User
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
 
-            {selectedReport && (
+          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+            <TabsList className="hidden">
+              <TabsTrigger value="reports">Reports</TabsTrigger>
+              <TabsTrigger value="messages">Messages</TabsTrigger>
+              <TabsTrigger value="private">Private Chats</TabsTrigger>
+              <TabsTrigger value="admin-messages">Admin Chat</TabsTrigger>
+              <TabsTrigger value="posts">Posts</TabsTrigger>
+              <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
+              <TabsTrigger value="announcements">Announcements</TabsTrigger>
+              <TabsTrigger value="mute">Mute</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="reports" className="space-y-4">
+              <h3 className="text-xl font-semibold">Reports Management</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>All Reports ({reports.length})</span>
+                      <Badge variant="secondary">{reports.filter(r => !r.admin_response).length} pending</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {reports.map((report) => (
+                        <div
+                          key={report.id}
+                          className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                            selectedReport?.id === report.id ? 'bg-muted border-primary' : ''
+                          }`}
+                          onClick={() => setSelectedReport(report)}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">{report.type}</Badge>
+                              <span className="text-sm text-muted-foreground">
+                                by {report.guest_name}
+                              </span>
+                            </div>
+                            <div className="flex gap-1">
+                              {report.admin_response && (
+                                <Badge className="bg-green-100 text-green-800">Responded</Badge>
+                              )}
+                              {report.status === 'closed' && (
+                                <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-sm truncate mb-2">{report.description}</p>
+                          <div className="flex justify-between items-center">
+                            <p className="text-xs text-muted-foreground">
+                              {formatTime(report.timestamp)}
+                            </p>
+                            <div className="flex gap-1">
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  closeReport(report.id);
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="text-xs px-2 py-1 h-auto"
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Close
+                              </Button>
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteReport(report.id);
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="text-xs px-2 py-1 h-auto text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {selectedReport && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>Report Details & Conversation</span>
+                        {selectedReport.status === 'closed' ? (
+                          <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
+                        ) : (
+                          <Badge variant="destructive">Open</Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <strong>Type:</strong> {selectedReport.type}
+                      </div>
+                      <div>
+                        <strong>Guest:</strong> {selectedReport.guest_name}
+                      </div>
+                      <div>
+                        <strong>Description:</strong>
+                        <p className="mt-1 text-sm bg-muted p-2 rounded">
+                          {selectedReport.description}
+                        </p>
+                      </div>
+                      {selectedReport.screenshot_url && (
+                        <div>
+                          <strong>Screenshot:</strong>
+                          <img 
+                            src={selectedReport.screenshot_url} 
+                            alt="Report screenshot" 
+                            className="mt-1 max-w-full h-auto rounded border"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <strong>Submitted:</strong> {formatTime(selectedReport.timestamp)}
+                      </div>
+
+                      {/* Conversation thread */}
+                      <div className="border-t pt-4">
+                        <strong className="block mb-3">Conversation:</strong>
+                        <div className="h-64 overflow-y-auto border rounded p-4 bg-muted/50 space-y-3">
+                          {reportReplies.length === 0 ? (
+                            <p className="text-muted-foreground text-center">No conversation yet</p>
+                          ) : (
+                            reportReplies.map((reply) => (
+                              <div key={reply.id} className={`flex ${reply.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
+                                  reply.sender_type === 'admin' 
+                                    ? 'bg-primary text-primary-foreground' 
+                                    : 'bg-blue-100 text-blue-900 border'
+                                }`}>
+                                  <div className="flex items-baseline gap-2 mb-1">
+                                    <span className="font-semibold text-xs">
+                                      {reply.sender_type === 'admin' ? 'Admin' : reply.guest_name}
+                                    </span>
+                                    <span className="text-xs opacity-70">
+                                      {formatTime(reply.timestamp)}
+                                    </span>
+                                  </div>
+                                  <div className="text-sm">{reply.message}</div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Admin response form */}
+                      <form onSubmit={handleRespondToReport} className="space-y-4 border-t pt-4">
+                        <Textarea
+                          value={adminResponse}
+                          onChange={(e) => setAdminResponse(e.target.value)}
+                          placeholder="Type your response..."
+                          rows={4}
+                        />
+                        <div className="flex flex-col gap-2">
+                          <Button type="submit" className="w-full">
+                            <Send className="w-4 h-4 mr-2" />
+                            Send Response
+                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              onClick={() => closeReport(selectedReport.id)}
+                              variant="outline"
+                              className="flex-1 text-blue-600 hover:text-blue-700"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Close Report
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => deleteReport(selectedReport.id)}
+                              variant="outline"
+                              className="flex-1 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete Report
+                            </Button>
+                          </div>
+                        </div>
+                      </form>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="messages">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>Report Details & Conversation</span>
-                    {selectedReport.status === 'closed' ? (
-                      <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
-                    ) : (
-                      <Badge variant="destructive">Open</Badge>
-                    )}
+                    <span>Public Chat History ({publicMessages.length} messages)</span>
+                    <Badge variant="secondary">Admin Mode</Badge>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <strong>Type:</strong> {selectedReport.type}
-                  </div>
-                  <div>
-                    <strong>Guest:</strong> {selectedReport.guest_name}
-                  </div>
-                  <div>
-                    <strong>Description:</strong>
-                    <p className="mt-1 text-sm bg-muted p-2 rounded">
-                      {selectedReport.description}
-                    </p>
-                  </div>
-                  {selectedReport.screenshot_url && (
-                    <div>
-                      <strong>Screenshot:</strong>
-                      <img 
-                        src={selectedReport.screenshot_url} 
-                        alt="Report screenshot" 
-                        className="mt-1 max-w-full h-auto rounded border"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <strong>Submitted:</strong> {formatTime(selectedReport.timestamp)}
-                  </div>
-
-                  {/* Conversation thread */}
-                  <div className="border-t pt-4">
-                    <strong className="block mb-3">Conversation:</strong>
-                    <div className="h-64 overflow-y-auto border rounded p-4 bg-muted/50 space-y-3">
-                      {reportReplies.length === 0 ? (
-                        <p className="text-muted-foreground text-center">No conversation yet</p>
-                      ) : (
-                        reportReplies.map((reply) => (
-                          <div key={reply.id} className={`flex ${reply.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
-                              reply.sender_type === 'admin' 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'bg-blue-100 text-blue-900 border'
-                            }`}>
-                              <div className="flex items-baseline gap-2 mb-1">
-                                <span className="font-semibold text-xs">
-                                  {reply.sender_type === 'admin' ? 'Admin' : reply.guest_name}
-                                </span>
-                                <span className="text-xs opacity-70">
-                                  {formatTime(reply.timestamp)}
-                                </span>
-                              </div>
-                              <div className="text-sm">{reply.message}</div>
-                            </div>
+                <CardContent>
+                  <div className="h-96 overflow-y-auto border rounded p-4 bg-muted/50">
+                    {publicMessages.map((msg) => (
+                      <div key={msg.id} className="mb-3 group flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-semibold text-primary">{msg.sender_name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatTime(msg.timestamp)}
+                            </span>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Admin response form */}
-                  <form onSubmit={handleRespondToReport} className="space-y-4 border-t pt-4">
-                    <Textarea
-                      value={adminResponse}
-                      onChange={(e) => setAdminResponse(e.target.value)}
-                      placeholder="Type your response..."
-                      rows={4}
-                    />
-                    <div className="flex flex-col gap-2">
-                      <Button type="submit" className="w-full">
-                        <Send className="w-4 h-4 mr-2" />
-                        Send Response
-                      </Button>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          onClick={() => closeReport(selectedReport.id)}
-                          variant="outline"
-                          className="flex-1 text-blue-600 hover:text-blue-700"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Close Report
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() => deleteReport(selectedReport.id)}
-                          variant="outline"
-                          className="flex-1 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Delete Report
-                        </Button>
-                      </div>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="public-chat">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Public Chat History ({publicMessages.length} messages)</span>
-                <Badge variant="secondary">Admin Mode</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-96 overflow-y-auto border rounded p-4 bg-muted/50">
-                {publicMessages.map((msg) => (
-                  <div key={msg.id} className="mb-3 group flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-semibold text-primary">{msg.sender_name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatTime(msg.timestamp)}
-                        </span>
-                      </div>
-                      <div className="text-sm mt-1">{msg.message}</div>
-                    </div>
-                    <Button
-                      onClick={() => deletePublicMessage(msg.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 ml-2"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="posts">
-          <Card>
-            <CardHeader>
-              <CardTitle>Community Posts ({posts.length} posts)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {posts.map((post) => (
-                  <div key={post.id} className="border rounded-lg p-4 group">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold">{post.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          by {post.author_name} • {formatTime(post.timestamp)} • {post.likes} likes
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => deletePost(post.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <p className="text-sm text-gray-600 line-clamp-3">{post.content}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="moderation">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserX className="w-5 h-5" />
-                  User Moderation
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    placeholder="Username to mute"
-                    value={muteUsername}
-                    onChange={(e) => setMuteUsername(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Reason (optional)"
-                    value={muteReason}
-                    onChange={(e) => setMuteReason(e.target.value)}
-                  />
-                </div>
-                <Button onClick={muteUser} className="w-full">
-                  <UserX className="w-4 h-4 mr-2" />
-                  Mute User from Public Chat
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>User Suggestions ({userSuggestions.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {userSuggestions.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-4">
-                      No user suggestions available
-                    </p>
-                  ) : (
-                    userSuggestions.map((user) => (
-                      <div key={user.username} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <p className="font-semibold">{user.username}</p>
-                          <p className="text-xs text-gray-500">{user.last_seen}</p>
+                          <div className="text-sm mt-1">{msg.message}</div>
                         </div>
                         <Button
+                          onClick={() => deletePublicMessage(msg.id)}
+                          variant="ghost"
                           size="sm"
-                          variant="outline"
-                          onClick={() => removeSuggestion(user.username)}
-                          className="text-red-600 hover:text-red-700"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 ml-2"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="tutorials">
-          <TutorialManager />
-        </TabsContent>
-
-        <TabsContent value="messages">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Megaphone className="w-5 h-5" />
-                  Send Message to User
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select value={selectedGuest} onValueChange={setSelectedGuest}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a user to message" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getUniqueGuests().map((guest) => (
-                      <SelectItem key={guest} value={guest}>
-                        {guest}
-                      </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-            {selectedGuest && (
+            <TabsContent value="posts">
               <Card>
                 <CardHeader>
-                  <CardTitle>Messages with {selectedGuest}</CardTitle>
+                  <CardTitle>Community Posts ({posts.length} posts)</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="h-64 overflow-y-auto border rounded p-4 bg-muted/50">
-                    {getGuestMessages().map((msg) => (
-                      <div key={msg.id} className={`mb-3 ${msg.sender_type === 'admin' ? 'text-right' : 'text-left'}`}>
-                        <div className={`inline-block max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
-                          msg.sender_type === 'admin' 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-muted border'
-                        }`}>
-                          <div className="flex items-baseline gap-2 mb-1">
-                            <span className="font-semibold text-xs">
-                              {msg.sender_type === 'admin' ? 'Admin' : msg.guest_name}
-                            </span>
-                            <span className="text-xs opacity-70">
-                              {formatTime(msg.timestamp)}
-                            </span>
+                <CardContent>
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {posts.map((post) => (
+                      <div key={post.id} className="border rounded-lg p-4 group">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h3 className="font-semibold">{post.title}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              by {post.author_name} • {formatTime(post.timestamp)} • {post.likes} likes
+                            </p>
                           </div>
-                          <div className="text-sm">{msg.message}</div>
+                          <Button
+                            onClick={() => deletePost(post.id)}
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
+                        <p className="text-sm text-gray-600 line-clamp-3">{post.content}</p>
                       </div>
                     ))}
                   </div>
-
-                  <form onSubmit={sendAdminMessage} className="space-y-4">
-                    <Textarea
-                      value={newAdminMessage}
-                      onChange={(e) => setNewAdminMessage(e.target.value)}
-                      placeholder="Type your message to the user..."
-                      rows={3}
-                    />
-                    <Button type="submit" className="w-full">
-                      Send Message
-                    </Button>
-                  </form>
                 </CardContent>
               </Card>
-            )}
+            </TabsContent>
+
+            <TabsContent value="moderation">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserX className="w-5 h-5" />
+                      User Moderation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input
+                        placeholder="Username to mute"
+                        value={muteUsername}
+                        onChange={(e) => setMuteUsername(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Reason (optional)"
+                        value={muteReason}
+                        onChange={(e) => setMuteReason(e.target.value)}
+                      />
+                    </div>
+                    <Button onClick={muteUser} className="w-full">
+                      <UserX className="w-4 h-4 mr-2" />
+                      Mute User from Public Chat
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Suggestions ({userSuggestions.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {userSuggestions.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-4">
+                          No user suggestions available
+                        </p>
+                      ) : (
+                        userSuggestions.map((user) => (
+                          <div key={user.username} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <p className="font-semibold">{user.username}</p>
+                              <p className="text-xs text-gray-500">{user.last_seen}</p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => removeSuggestion(user.username)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="tutorials">
+              <TutorialManager />
+            </TabsContent>
+
+            <TabsContent value="messages">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Megaphone className="w-5 h-5" />
+                      Send Message to User
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Select value={selectedGuest} onValueChange={setSelectedGuest}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a user to message" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {getUniqueGuests().map((guest) => (
+                          <SelectItem key={guest} value={guest}>
+                            {guest}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+
+                {selectedGuest && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Messages with {selectedGuest}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="h-64 overflow-y-auto border rounded p-4 bg-muted/50">
+                        {getGuestMessages().map((msg) => (
+                          <div key={msg.id} className={`mb-3 ${msg.sender_type === 'admin' ? 'text-right' : 'text-left'}`}>
+                            <div className={`inline-block max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
+                              msg.sender_type === 'admin' 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'bg-muted border'
+                            }`}>
+                              <div className="flex items-baseline gap-2 mb-1">
+                                <span className="font-semibold text-xs">
+                                  {msg.sender_type === 'admin' ? 'Admin' : msg.guest_name}
+                                </span>
+                                <span className="text-xs opacity-70">
+                                  {formatTime(msg.timestamp)}
+                                </span>
+                              </div>
+                              <div className="text-sm">{msg.message}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <form onSubmit={sendAdminMessage} className="space-y-4">
+                        <Textarea
+                          value={newAdminMessage}
+                          onChange={(e) => setNewAdminMessage(e.target.value)}
+                          placeholder="Type your message to the user..."
+                          rows={3}
+                        />
+                        <Button type="submit" className="w-full">
+                          Send Message
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
           </div>
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 };
