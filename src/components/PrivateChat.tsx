@@ -240,7 +240,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName, initialTarget }) =
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-4 border-t">
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-10 md:relative md:bg-transparent md:border-0 md:z-auto">
             <form onSubmit={sendMessage} className="flex gap-2">
               <Input
                 value={newMessage}

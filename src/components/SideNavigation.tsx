@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Home, Megaphone, BookOpen, ChevronRight, UserPlus, MessageSquare, Users, Search, Check, X, MoreVertical, FileText, MessageCircle } from "lucide-react";
+import { Home, Megaphone, BookOpen, ChevronRight, UserPlus, MessageSquare, Users, Search, Check, X, MoreVertical, FileText, MessageCircle, Gamepad2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserAvatar from './UserAvatar';
@@ -72,6 +72,7 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
     { id: 'home', label: 'Home', icon: Home },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
     { id: 'tutorials', label: 'Tutorials', icon: BookOpen },
+    { id: 'games', label: 'Games', icon: Gamepad2, isNew: true },
   ];
 
   useEffect(() => {
@@ -364,7 +365,7 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
                 key={item.id}
                 variant={isActive ? "default" : "ghost"}
                 onClick={() => handleSectionChange(item.id)}
-                className={`w-full justify-start gap-3 ${
+                className={`w-full justify-start gap-3 relative ${
                   isActive 
                     ? 'bg-blue-600 text-white hover:bg-blue-700' 
                     : 'text-gray-700 hover:bg-gray-100'
@@ -372,6 +373,11 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
               >
                 <Icon className="w-4 h-4" />
                 {item.label}
+                {item.isNew && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                    NEW
+                  </span>
+                )}
                 {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
               </Button>
             );
@@ -402,7 +408,7 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
               key={item.id}
               variant={isActive ? "default" : "ghost"}
               onClick={() => handleSectionChange(item.id)}
-              className={`w-full justify-start gap-3 ${
+              className={`w-full justify-start gap-3 relative ${
                 isActive 
                   ? 'bg-blue-600 text-white hover:bg-blue-700' 
                   : 'text-gray-700 hover:bg-gray-100'
@@ -410,6 +416,11 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
             >
               <Icon className="w-4 h-4" />
               {item.label}
+              {item.isNew && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  NEW
+                </span>
+              )}
               {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
             </Button>
           );

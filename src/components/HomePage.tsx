@@ -7,6 +7,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/u
 import SideNavigation from './SideNavigation';
 import AnnouncementsSection from './AnnouncementsSection';
 import TutorialsSection from './TutorialsSection';
+import GamesSection from './GamesSection';
 import CommunitySection from './CommunitySection';
 import ChatSection from './ChatSection';
 import PublicChat from './PublicChat';
@@ -63,6 +64,8 @@ const HomePage: React.FC<HomePageProps> = ({
             return <AnnouncementsSection username={username} />;
           case 'tutorials':
             return <TutorialsSection />;
+          case 'games':
+            return <GamesSection />;
           default:
             return (
               <>
