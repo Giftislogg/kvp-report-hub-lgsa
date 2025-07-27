@@ -493,6 +493,24 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  const deleteAnnouncement = async (announcementId: string) => {
+    try {
+      const { error } = await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', announcementId);
+
+      if (error) throw error;
+
+      // Remove announcement from state if we were tracking it
+      fetchAllData();
+      toast.success('Announcement deleted successfully');
+    } catch (error) {
+      console.error('Error deleting announcement:', error);
+      toast.error('Failed to delete announcement');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">

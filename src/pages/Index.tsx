@@ -9,6 +9,7 @@ import AdminPanel from '@/components/AdminPanel';
 import NotificationsPage from '@/components/NotificationsPage';
 import SettingsPage from '@/components/SettingsPage';
 import AuthModal from '@/components/AuthModal';
+import FloatingHelpBot from '@/components/FloatingHelpBot';
 import { toast } from "sonner";
 
 const Index = () => {
@@ -157,6 +158,8 @@ const Index = () => {
         isOpen={showAuthModal} 
         onSubmit={handleAuthSubmit} 
       />
+
+      {currentPage === 'home' && <FloatingHelpBot />}
     </div>
   );
 };

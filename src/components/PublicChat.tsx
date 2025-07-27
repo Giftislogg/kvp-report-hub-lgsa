@@ -1,13 +1,11 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Send, Trash2, Users, RefreshCw, Reply, Smile, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, Trash2, Reply, Heart, Smile, Users } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import UserAvatar from './UserAvatar';
+import ChatInput from './ChatInput';
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -24,7 +22,6 @@ interface PublicChatProps {
 
 const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -121,30 +118,71 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
     toast.success("Chat refreshed!");
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || isMuted) return;
+  const handleSendMessage = async (message: string, imageFile?: File, voiceBlob?: Blob) => {
+    if ((!message.trim() && !imageFile && !voiceBlob) || isMuted) return;
 
     try {
-      const { error } = await supabase
-        .from('public_chat')
-        .insert({
-          sender_name: guestName,
-          message: newMessage.trim(),
-          reply_to_id: replyingTo?.id || null
-        });
+      let imageUrl = '';
+      let voiceUrl = '';
 
-      if (error) {
-        console.error('Error sending message:', error);
-        toast.error("Failed to send message");
-        return;
+      // Upload image if provided
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('post-images')
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(fileName);
+        
+        imageUrl = data.publicUrl;
       }
 
-      setNewMessage('');
+      // Upload voice if provided
+      if (voiceBlob) {
+        const fileName = `voice_${Date.now()}.webm`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('post-images')
+          .upload(fileName, voiceBlob);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(fileName);
+        
+        voiceUrl = data.publicUrl;
+      }
+
+      // Create message with content
+      let messageContent = message.trim();
+      if (imageUrl) messageContent += `\n[IMAGE:${imageUrl}]`;
+      if (voiceUrl) messageContent += `\n[VOICE:${voiceUrl}]`;
+
+      const messageData = {
+        message: messageContent,
+        sender_name: guestName,
+        reply_to_id: replyingTo?.id || null,
+      };
+
+      const { error } = await supabase
+        .from('public_chat')
+        .insert([messageData]);
+
+      if (error) throw error;
+
       setReplyingTo(null);
+      scrollToBottom();
+      toast.success('Message sent successfully');
     } catch (error) {
-      console.error('Unexpected error:', error);
-      toast.error("An unexpected error occurred");
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
     }
   };
 
@@ -201,6 +239,34 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString();
+  };
+
+  const renderMessage = (messageText: string) => {
+    // Check for image links
+    const imageMatch = messageText.match(/\[IMAGE:(.*?)\]/);
+    const voiceMatch = messageText.match(/\[VOICE:(.*?)\]/);
+    
+    let displayText = messageText.replace(/\[IMAGE:.*?\]/, '').replace(/\[VOICE:.*?\]/, '').trim();
+    
+    return (
+      <div>
+        {displayText && <div className="text-sm md:text-base break-words">{displayText}</div>}
+        {imageMatch && (
+          <img 
+            src={imageMatch[1]} 
+            alt="Shared image" 
+            className="mt-2 max-w-full h-auto rounded-lg border"
+            style={{ maxHeight: '200px' }}
+          />
+        )}
+        {voiceMatch && (
+          <audio controls className="mt-2 w-full max-w-xs">
+            <source src={voiceMatch[1]} type="audio/webm" />
+            Your browser does not support the audio element.
+          </audio>
+        )}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -287,9 +353,7 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
                         </div>
                       )}
                       
-                      <div className="text-sm md:text-base break-words">
-                        {message.message}
-                      </div>
+                      {renderMessage(message.message)}
                       
                       {/* Reactions */}
                       {message.reactions && Object.keys(message.reactions).length > 0 && (
@@ -369,43 +433,14 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Message Input */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-10 md:relative md:bg-transparent md:border-0 md:z-auto">
-            {replyingTo && (
-              <div className="mb-2 p-2 bg-muted rounded-lg border-l-4 border-primary">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    Replying to {replyingTo.sender_name}
-                  </span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setReplyingTo(null)}
-                    className="h-4 w-4 p-0"
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-                <p className="text-sm mt-1 truncate">{replyingTo.message}</p>
-              </div>
-            )}
-            <form onSubmit={sendMessage} className="flex gap-2">
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder={isMuted ? "You are muted and cannot send messages" : replyingTo ? `Reply to ${replyingTo.sender_name}...` : "Type your message..."}
-                className="flex-1"
-                maxLength={500}
-                disabled={isMuted}
-              />
-              <Button type="submit" className="px-6" disabled={isMuted}>
-                <Send className="w-4 h-4" />
-              </Button>
-            </form>
-            <div className="text-xs text-gray-500 mt-2">
-              {newMessage.length}/500 characters
-            </div>
-          </div>
+          {/* Enhanced Chat Input */}
+          <ChatInput
+            onSendMessage={handleSendMessage}
+            placeholder={replyingTo ? `Reply to ${replyingTo.sender_name}...` : "Type your message..."}
+            disabled={isMuted}
+            replyingTo={replyingTo}
+            onClearReply={() => setReplyingTo(null)}
+          />
         </CardContent>
       </Card>
     </div>
