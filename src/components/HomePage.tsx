@@ -52,7 +52,7 @@ const HomePage: React.FC<HomePageProps> = ({
         if (showPublicChat && username) {
           return <PublicChat guestName={username} />;
         }
-        return <ChatSection username={username} onShowPublicChat={handleShowPublicChat} onBackToChat={handleBackToChat} />;
+        return <ChatSection guestName={username} />;
       case 'posts':
         return <PostsPage username={username} />;
       case 'notifications':
