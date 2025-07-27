@@ -9,8 +9,7 @@ import AnnouncementsSection from './AnnouncementsSection';
 import TutorialsSection from './TutorialsSection';
 import GamesSection from './GamesSection';
 import CommunitySection from './CommunitySection';
-import ChatSection from './ChatSection';
-import PublicChat from './PublicChat';
+import FloatingChatButton from './FloatingChatButton';
 import PostsPage from './PostsPage';
 
 interface HomePageProps {
@@ -48,11 +47,6 @@ const HomePage: React.FC<HomePageProps> = ({
   const renderContent = () => {
     // Handle different pages from bottom navigation
     switch (currentPage) {
-      case 'public-chat':
-        if (showPublicChat && username) {
-          return <PublicChat guestName={username} />;
-        }
-        return <ChatSection guestName={username} />;
       case 'posts':
         return <PostsPage username={username} />;
       case 'notifications':
@@ -174,6 +168,9 @@ const HomePage: React.FC<HomePageProps> = ({
       <div className="container mx-auto p-3 pb-20 max-w-4xl pt-4">
         {renderContent()}
       </div>
+
+      {/* Floating Chat Button */}
+      {username && <FloatingChatButton guestName={username} />}
     </div>
   );
 };

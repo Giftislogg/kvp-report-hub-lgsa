@@ -323,6 +323,29 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  const deletePrivateMessage = async (messageId: string) => {
+    if (!confirm('Are you sure you want to delete this private message?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('private_chats')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) {
+        console.error('Error deleting private message:', error);
+        toast.error("Failed to delete private message");
+        return;
+      }
+
+      toast.success("Private message deleted");
+      fetchAllData();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error("An unexpected error occurred");
+    }
+  };
+
   const deletePost = async (postId: string) => {
     if (!confirm('Are you sure you want to delete this post?')) return;
 
@@ -916,6 +939,44 @@ const AdminPanel: React.FC = () => {
                         </div>
                         <Button
                           onClick={() => deletePublicMessage(msg.id)}
+                          variant="ghost"
+                          size="sm"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 ml-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="private">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Private Chat History ({privateMessages.length} messages)</span>
+                    <Badge variant="secondary">Admin Mode</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-96 overflow-y-auto border rounded p-4 bg-muted/50">
+                    {privateMessages.map((msg) => (
+                      <div key={msg.id} className="mb-3 group flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-semibold text-purple-600">{msg.sender_name}</span>
+                            <span className="text-xs text-gray-400">→</span>
+                            <span className="font-semibold text-blue-600">{msg.receiver_name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatTime(msg.timestamp)}
+                            </span>
+                          </div>
+                          <div className="text-sm mt-1">{msg.message}</div>
+                        </div>
+                        <Button
+                          onClick={() => deletePrivateMessage(msg.id)}
                           variant="ghost"
                           size="sm"
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600 ml-2"

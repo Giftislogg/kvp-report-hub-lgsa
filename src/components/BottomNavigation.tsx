@@ -14,7 +14,6 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
 }) => {
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'public-chat', label: 'Chat', icon: MessageCircle },
     { id: 'posts', label: 'Posts', icon: PenTool },
     { id: 'report', label: 'Report', icon: FileText },
     { id: 'settings', label: 'Settings', icon: Settings },
