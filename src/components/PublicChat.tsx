@@ -216,8 +216,8 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-4xl pb-24">
-      <Card className="h-[calc(100vh-200px)] flex flex-col">
+    <div className="container mx-auto p-4 md:p-6 max-w-4xl pb-32">
+      <Card className="h-[calc(100vh-240px)] flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div>
             <CardTitle className="flex items-center gap-2">

@@ -194,8 +194,8 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName, initialTarget }) =
   }
 
   return (
-    <div className="container mx-auto p-4 pb-24">
-      <Card className="max-w-4xl mx-auto h-[calc(100vh-200px)] flex flex-col">
+    <div className="container mx-auto p-4 pb-32">
+      <Card className="max-w-4xl mx-auto h-[calc(100vh-240px)] flex flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Chat with {targetPlayer}</CardTitle>

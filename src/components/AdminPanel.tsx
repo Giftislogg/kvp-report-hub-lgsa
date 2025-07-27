@@ -513,11 +513,12 @@ const AdminPanel: React.FC = () => {
       </div>
       
       <Tabs defaultValue="reports" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="public-chat">Public Chat</TabsTrigger>
           <TabsTrigger value="posts">Posts</TabsTrigger>
           <TabsTrigger value="moderation">Moderation</TabsTrigger>
+          <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
         </TabsList>
 
@@ -834,6 +835,10 @@ const AdminPanel: React.FC = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="tutorials">
+          <TutorialManager />
         </TabsContent>
 
         <TabsContent value="messages">
