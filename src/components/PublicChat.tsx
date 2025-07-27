@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, Trash2, Users, RefreshCw } from "lucide-react";
+import { Send, Trash2, Users, RefreshCw, Reply, Smile, X } from "lucide-react";
 import UserAvatar from './UserAvatar';
 
 interface Message {
@@ -14,6 +14,8 @@ interface Message {
   sender_name: string;
   message: string;
   timestamp: string;
+  reply_to_id?: string;
+  reactions?: Record<string, string[]>;
 }
 
 interface PublicChatProps {
@@ -26,6 +28,7 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,8 +39,18 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
     const channel = supabase
       .channel('public_chat_changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'public_chat' }, (payload) => {
-        const newMsg = payload.new as Message;
+        const newMsg = {
+          ...payload.new,
+          reactions: payload.new.reactions as Record<string, string[]> || {}
+        } as Message;
         setMessages(prev => [...prev, newMsg]);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'public_chat' }, (payload) => {
+        const updatedMsg = {
+          ...payload.new,
+          reactions: payload.new.reactions as Record<string, string[]> || {}
+        } as Message;
+        setMessages(prev => prev.map(msg => msg.id === updatedMsg.id ? updatedMsg : msg));
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'public_chat' }, (payload) => {
         const deletedId = payload.old.id;
@@ -87,7 +100,12 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
         return;
       }
 
-      setMessages(data || []);
+      const typedMessages: Message[] = (data || []).map(msg => ({
+        ...msg,
+        reactions: msg.reactions as Record<string, string[]> || {}
+      }));
+      
+      setMessages(typedMessages);
     } catch (error) {
       console.error('Unexpected error:', error);
       toast.error("An unexpected error occurred");
@@ -112,7 +130,8 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
         .from('public_chat')
         .insert({
           sender_name: guestName,
-          message: newMessage.trim()
+          message: newMessage.trim(),
+          reply_to_id: replyingTo?.id || null
         });
 
       if (error) {
@@ -122,6 +141,34 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
       }
 
       setNewMessage('');
+      setReplyingTo(null);
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error("An unexpected error occurred");
+    }
+  };
+
+  const addReaction = async (messageId: string, emoji: string) => {
+    try {
+      const message = messages.find(m => m.id === messageId);
+      if (!message) return;
+
+      const currentReactions = message.reactions || {};
+      const emojiReactions = currentReactions[emoji] || [];
+      
+      const updatedReactions = emojiReactions.includes(guestName)
+        ? { ...currentReactions, [emoji]: emojiReactions.filter(name => name !== guestName) }
+        : { ...currentReactions, [emoji]: [...emojiReactions, guestName] };
+
+      const { error } = await supabase
+        .from('public_chat')
+        .update({ reactions: updatedReactions })
+        .eq('id', messageId);
+
+      if (error) {
+        console.error('Error updating reaction:', error);
+        toast.error("Failed to add reaction");
+      }
     } catch (error) {
       console.error('Unexpected error:', error);
       toast.error("An unexpected error occurred");
@@ -169,8 +216,8 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-4xl">
-      <Card className="h-[80vh] flex flex-col">
+    <div className="container mx-auto p-4 md:p-6 max-w-4xl pb-24">
+      <Card className="h-[calc(100vh-200px)] flex flex-col">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div>
             <CardTitle className="flex items-center gap-2">
@@ -207,47 +254,144 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
         <CardContent className="flex-1 flex flex-col p-0">
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-            {messages.map((message) => (
-              <div key={message.id} className="group">
-                <div className={`flex items-start gap-2 ${message.sender_name === guestName ? 'justify-end' : 'justify-start'}`}>
-                  {message.sender_name !== guestName && (
-                    <UserAvatar username={message.sender_name} size="sm" />
-                  )}
-                  <div className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-2xl ${
-                    message.sender_name === guestName
-                      ? 'bg-blue-500 text-white rounded-br-sm'
-                      : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border'
-                  }`}>
+            {messages.map((message) => {
+              const replyToMessage = message.reply_to_id 
+                ? messages.find(m => m.id === message.reply_to_id)
+                : null;
+                
+              return (
+                <div key={message.id} className="group">
+                  <div className={`flex items-start gap-2 ${message.sender_name === guestName ? 'justify-end' : 'justify-start'}`}>
                     {message.sender_name !== guestName && (
-                      <div className="font-semibold text-sm text-blue-600 mb-1">
-                        {message.sender_name}
-                      </div>
+                      <UserAvatar username={message.sender_name} size="sm" />
                     )}
-                    <div className="text-sm md:text-base break-words">
-                      {message.message}
-                    </div>
-                    <div className={`text-xs mt-1 ${
-                      message.sender_name === guestName ? 'text-blue-100' : 'text-gray-500'
+                    <div className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-2xl relative ${
+                      message.sender_name === guestName
+                        ? 'bg-blue-500 text-white rounded-br-sm'
+                        : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border'
                     }`}>
-                      {formatTime(message.timestamp)}
+                      {replyToMessage && (
+                        <div className={`text-xs p-2 mb-2 rounded border-l-2 ${
+                          message.sender_name === guestName 
+                            ? 'bg-blue-400 border-blue-200' 
+                            : 'bg-gray-100 border-gray-300'
+                        }`}>
+                          <div className="font-medium">{replyToMessage.sender_name}</div>
+                          <div className="truncate">{replyToMessage.message}</div>
+                        </div>
+                      )}
+                      
+                      {message.sender_name !== guestName && (
+                        <div className="font-semibold text-sm text-blue-600 mb-1">
+                          {message.sender_name}
+                        </div>
+                      )}
+                      
+                      <div className="text-sm md:text-base break-words">
+                        {message.message}
+                      </div>
+                      
+                      {/* Reactions */}
+                      {message.reactions && Object.keys(message.reactions).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {Object.entries(message.reactions).map(([emoji, users]) => 
+                            users.length > 0 && (
+                              <span
+                                key={emoji}
+                                className={`text-xs px-2 py-1 rounded-full border cursor-pointer ${
+                                  users.includes(guestName)
+                                    ? 'bg-blue-100 border-blue-300'
+                                    : 'bg-gray-100 border-gray-300 hover:bg-gray-200'
+                                }`}
+                                onClick={() => addReaction(message.id, emoji)}
+                              >
+                                {emoji} {users.length}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className={`text-xs mt-1 ${
+                        message.sender_name === guestName ? 'text-blue-100' : 'text-gray-500'
+                      }`}>
+                        {formatTime(message.timestamp)}
+                      </div>
+                      
+                      {/* Message Actions */}
+                      <div className="opacity-0 group-hover:opacity-100 absolute -right-16 top-2 flex gap-1 transition-opacity">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                          onClick={() => setReplyingTo(message)}
+                        >
+                          <Reply className="w-3 h-3" />
+                        </Button>
+                        <div className="relative">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const emojiPicker = e.currentTarget.nextElementSibling as HTMLElement;
+                              emojiPicker?.classList.toggle('hidden');
+                            }}
+                          >
+                            <Smile className="w-3 h-3" />
+                          </Button>
+                          <div className="hidden absolute top-8 right-0 bg-white border rounded-lg shadow-lg p-2 z-10">
+                            {['❤️', '😂', '👍', '👎', '😮', '😢'].map((emoji) => (
+                              <button
+                                key={emoji}
+                                className="hover:bg-gray-100 p-1 rounded"
+                                onClick={() => {
+                                  addReaction(message.id, emoji);
+                                  const emojiPicker = document.querySelector('.absolute.top-8') as HTMLElement;
+                                  emojiPicker?.classList.add('hidden');
+                                }}
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                    {message.sender_name === guestName && (
+                      <UserAvatar username={message.sender_name} size="sm" />
+                    )}
                   </div>
-                  {message.sender_name === guestName && (
-                    <UserAvatar username={message.sender_name} size="sm" />
-                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Message Input */}
           <div className="p-4 border-t bg-white">
+            {replyingTo && (
+              <div className="mb-2 p-2 bg-gray-100 rounded-lg flex items-center justify-between">
+                <div className="text-sm">
+                  <span className="font-medium">Replying to {replyingTo.sender_name}:</span>
+                  <span className="ml-2 text-gray-600 truncate">{replyingTo.message}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setReplyingTo(null)}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            )}
             <form onSubmit={sendMessage} className="flex gap-2">
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder={isMuted ? "You are muted and cannot send messages" : "Type your message..."}
+                placeholder={isMuted ? "You are muted and cannot send messages" : replyingTo ? `Reply to ${replyingTo.sender_name}...` : "Type your message..."}
                 className="flex-1"
                 maxLength={500}
                 disabled={isMuted}

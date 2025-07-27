@@ -13,6 +13,8 @@ interface PrivateMessage {
   receiver_name: string;
   message: string;
   timestamp: string;
+  reply_to_id?: string;
+  reactions?: Record<string, string[]>;
 }
 
 interface FriendChatProps {
@@ -24,6 +26,7 @@ interface FriendChatProps {
 const FriendChat: React.FC<FriendChatProps> = ({ username, friendName, onClose }) => {
   const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [replyingTo, setReplyingTo] = useState<PrivateMessage | null>(null);
 
   useEffect(() => {
     fetchMessages();
@@ -37,7 +40,11 @@ const FriendChat: React.FC<FriendChatProps> = ({ username, friendName, onClose }
         table: 'private_chats',
         filter: `or(and(sender_name.eq.${username},receiver_name.eq.${friendName}),and(sender_name.eq.${friendName},receiver_name.eq.${username}))`
       }, (payload) => {
-        setMessages(prev => [...prev, payload.new as PrivateMessage]);
+        const newMsg = {
+          ...payload.new,
+          reactions: payload.new.reactions as Record<string, string[]> || {}
+        } as PrivateMessage;
+        setMessages(prev => [...prev, newMsg]);
       })
       .subscribe();
 
@@ -59,7 +66,12 @@ const FriendChat: React.FC<FriendChatProps> = ({ username, friendName, onClose }
         return;
       }
 
-      setMessages(data || []);
+      const typedMessages: PrivateMessage[] = (data || []).map(msg => ({
+        ...msg,
+        reactions: msg.reactions as Record<string, string[]> || {}
+      }));
+      
+      setMessages(typedMessages);
     } catch (error) {
       console.error('Unexpected error:', error);
     }

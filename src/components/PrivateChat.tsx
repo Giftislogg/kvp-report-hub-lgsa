@@ -19,6 +19,8 @@ interface PrivateMessage {
   receiver_name: string;
   message: string;
   timestamp: string;
+  reply_to_id?: string;
+  reactions?: Record<string, string[]>;
 }
 
 const PrivateChat: React.FC<PrivateChatProps> = ({ guestName, initialTarget }) => {
@@ -26,6 +28,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName, initialTarget }) =
   const [chatStarted, setChatStarted] = useState(!!initialTarget);
   const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [replyingTo, setReplyingTo] = useState<PrivateMessage | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -88,7 +91,12 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName, initialTarget }) =
         return;
       }
 
-      setMessages(data || []);
+      const typedMessages: PrivateMessage[] = (data || []).map(msg => ({
+        ...msg,
+        reactions: msg.reactions as Record<string, string[]> || {}
+      }));
+      
+      setMessages(typedMessages);
     } catch (error) {
       console.error('Unexpected error:', error);
       toast.error("An unexpected error occurred");
@@ -186,7 +194,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({ guestName, initialTarget }) =
   }
 
   return (
-    <div className="container mx-auto p-4 pb-20">
+    <div className="container mx-auto p-4 pb-24">
       <Card className="max-w-4xl mx-auto h-[calc(100vh-200px)] flex flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">

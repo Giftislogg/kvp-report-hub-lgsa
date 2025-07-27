@@ -43,6 +43,8 @@ export type Database = {
           guest_name: string
           id: string
           message: string
+          reactions: Json | null
+          reply_to_id: string | null
           sender_type: string
           timestamp: string
         }
@@ -50,6 +52,8 @@ export type Database = {
           guest_name: string
           id?: string
           message: string
+          reactions?: Json | null
+          reply_to_id?: string | null
           sender_type?: string
           timestamp?: string
         }
@@ -57,10 +61,20 @@ export type Database = {
           guest_name?: string
           id?: string
           message?: string
+          reactions?: Json | null
+          reply_to_id?: string | null
           sender_type?: string
           timestamp?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "admin_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "admin_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       announcements: {
         Row: {
@@ -265,46 +279,74 @@ export type Database = {
         Row: {
           id: string
           message: string
+          reactions: Json | null
           receiver_name: string
+          reply_to_id: string | null
           sender_name: string
           timestamp: string
         }
         Insert: {
           id?: string
           message: string
+          reactions?: Json | null
           receiver_name: string
+          reply_to_id?: string | null
           sender_name: string
           timestamp?: string
         }
         Update: {
           id?: string
           message?: string
+          reactions?: Json | null
           receiver_name?: string
+          reply_to_id?: string | null
           sender_name?: string
           timestamp?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "private_chats_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "private_chats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       public_chat: {
         Row: {
           id: string
           message: string
+          reactions: Json | null
+          reply_to_id: string | null
           sender_name: string
           timestamp: string
         }
         Insert: {
           id?: string
           message: string
+          reactions?: Json | null
+          reply_to_id?: string | null
           sender_name: string
           timestamp?: string
         }
         Update: {
           id?: string
           message?: string
+          reactions?: Json | null
+          reply_to_id?: string | null
           sender_name?: string
           timestamp?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "public_chat_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "public_chat"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reports: {
         Row: {
