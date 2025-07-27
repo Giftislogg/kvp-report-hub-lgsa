@@ -527,53 +527,58 @@ const ModernPublicChat: React.FC<ModernPublicChatProps> = ({ guestName }) => {
             )}
 
             {/* Action buttons above input */}
-            <div className="flex justify-between items-center mb-3 px-2">
-              <div className="flex gap-2">
-                {/* Image upload */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isMuted || selectedImage !== null}
-                  className="flex items-center gap-1"
-                >
-                  <Image className="w-4 h-4" />
-                  <span className="hidden sm:inline">Image</span>
-                </Button>
+            <div className="bg-white border rounded-lg p-3 mb-3 shadow-sm">
+              <div className="flex justify-between items-center">
+                <div className="flex gap-2">
+                  {/* Image upload */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isMuted || selectedImage !== null}
+                    className="flex items-center gap-1 border-2 border-blue-300 hover:bg-blue-50 text-blue-600"
+                  >
+                    <Image className="w-4 h-4" />
+                    <span className="text-xs">Image</span>
+                  </Button>
+                  
+                  {/* Voice recording */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    disabled={isMuted || voiceBlob !== null}
+                    className={`flex items-center gap-1 border-2 ${isRecording 
+                      ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' 
+                      : 'border-green-300 hover:bg-green-50 text-green-600'
+                    }`}
+                  >
+                    {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                    <span className="text-xs">{isRecording ? 'Stop' : 'Voice'}</span>
+                  </Button>
+                  
+                  {isRecording && (
+                    <span className="text-sm text-red-500 flex items-center font-medium">
+                      Recording: {recordingTime}s / 30s
+                    </span>
+                  )}
+                </div>
                 
-                {/* Voice recording */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isMuted || voiceBlob !== null}
-                  className={`flex items-center gap-1 ${isRecording ? 'bg-red-500 text-white hover:bg-red-600' : ''}`}
-                >
-                  {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                  <span className="hidden sm:inline">{isRecording ? 'Stop' : 'Voice'}</span>
-                </Button>
-                
-                {isRecording && (
-                  <span className="text-sm text-red-500 flex items-center">
-                    Recording: {recordingTime}s / 30s
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 font-medium">
+                    {message.length}/500
                   </span>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">
-                  {message.length}/500
-                </span>
-                <Button 
-                  onClick={handleSendMessage}
-                  disabled={isMuted || (!message.trim() && !selectedImage && !voiceBlob)}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center gap-1"
-                >
-                  <Send className="w-4 h-4" />
-                  <span className="hidden sm:inline">Send</span>
-                </Button>
+                  <Button 
+                    onClick={handleSendMessage}
+                    disabled={isMuted || (!message.trim() && !selectedImage && !voiceBlob)}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center gap-1 border-0 text-white font-medium"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span className="text-xs">Send</span>
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -583,7 +588,7 @@ const ModernPublicChat: React.FC<ModernPublicChatProps> = ({ guestName }) => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={isMuted ? "You are muted and cannot send messages" : "Type your message..."}
-                className="min-h-[60px] resize-none border-gray-200 focus:border-blue-500 w-full"
+                className="min-h-[80px] resize-none border-2 border-gray-300 focus:border-blue-500 w-full rounded-lg p-3 text-base"
                 maxLength={500}
                 disabled={isMuted}
               />
