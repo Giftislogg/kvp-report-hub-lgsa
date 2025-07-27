@@ -526,63 +526,67 @@ const ModernPublicChat: React.FC<ModernPublicChatProps> = ({ guestName }) => {
               </div>
             )}
 
-            {/* Input area */}
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={isMuted ? "You are muted and cannot send messages" : "Type your message..."}
-                  className="min-h-[60px] resize-none border-gray-200 focus:border-blue-500"
-                  maxLength={500}
-                  disabled={isMuted}
-                />
-                <div className="flex justify-between items-center mt-1">
-                  <div className="flex gap-1">
-                    {/* Image upload */}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isMuted || selectedImage !== null}
-                    >
-                      <Image className="w-4 h-4" />
-                    </Button>
-                    
-                    {/* Voice recording */}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={isRecording ? stopRecording : startRecording}
-                      disabled={isMuted || voiceBlob !== null}
-                      className={isRecording ? 'bg-red-500 text-white hover:bg-red-600' : ''}
-                    >
-                      {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    </Button>
-                    
-                    {isRecording && (
-                      <span className="text-sm text-red-500 flex items-center">
-                        Recording: {recordingTime}s / 30s
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">
-                      {message.length}/500
-                    </span>
-                    <Button 
-                      onClick={handleSendMessage}
-                      disabled={isMuted || (!message.trim() && !selectedImage && !voiceBlob)}
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+            {/* Action buttons above input */}
+            <div className="flex justify-between items-center mb-3 px-2">
+              <div className="flex gap-2">
+                {/* Image upload */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isMuted || selectedImage !== null}
+                  className="flex items-center gap-1"
+                >
+                  <Image className="w-4 h-4" />
+                  <span className="hidden sm:inline">Image</span>
+                </Button>
+                
+                {/* Voice recording */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={isMuted || voiceBlob !== null}
+                  className={`flex items-center gap-1 ${isRecording ? 'bg-red-500 text-white hover:bg-red-600' : ''}`}
+                >
+                  {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                  <span className="hidden sm:inline">{isRecording ? 'Stop' : 'Voice'}</span>
+                </Button>
+                
+                {isRecording && (
+                  <span className="text-sm text-red-500 flex items-center">
+                    Recording: {recordingTime}s / 30s
+                  </span>
+                )}
               </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">
+                  {message.length}/500
+                </span>
+                <Button 
+                  onClick={handleSendMessage}
+                  disabled={isMuted || (!message.trim() && !selectedImage && !voiceBlob)}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center gap-1"
+                >
+                  <Send className="w-4 h-4" />
+                  <span className="hidden sm:inline">Send</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Input area */}
+            <div className="flex-1">
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={isMuted ? "You are muted and cannot send messages" : "Type your message..."}
+                className="min-h-[60px] resize-none border-gray-200 focus:border-blue-500 w-full"
+                maxLength={500}
+                disabled={isMuted}
+              />
             </div>
 
             <input
