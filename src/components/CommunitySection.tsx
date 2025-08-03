@@ -48,16 +48,6 @@ const CommunitySection: React.FC<CommunitySectionProps> = ({ username }) => {
         <p className="text-gray-600">Share your experiences and connect with fellow KVRP players</p>
       </div>
 
-      {/* Suggested Friends Section */}
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Suggested Friends
-          </h3>
-          
-        </CardContent>
-      </Card>
 
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Latest Posts</h2>

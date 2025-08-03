@@ -73,7 +73,7 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'announcements', label: 'Announcements', icon: Megaphone },
-    { id: 'tutorials', label: 'Tutorials', icon: BookOpen },
+    { id: 'tutorials', label: 'Videos', icon: BookOpen },
     { id: 'games', label: 'Games', icon: Gamepad2, isNew: true },
     { id: 'messages-friends', label: 'Messages & Friends', icon: MessageSquare },
   ];

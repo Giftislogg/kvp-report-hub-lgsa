@@ -55,29 +55,59 @@ const MessagesAndFriends: React.FC<MessagesAndFriendsProps> = ({ username, onBac
 
   const fetchRegisteredUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('author_name, timestamp')
-        .order('timestamp', { ascending: false });
+      // Get users from multiple sources for better discovery
+      const [postsData, chatData, reportsData] = await Promise.all([
+        supabase.from('posts').select('author_name, timestamp').order('timestamp', { ascending: false }),
+        supabase.from('public_chat').select('sender_name, timestamp').order('timestamp', { ascending: false }),
+        supabase.from('reports').select('guest_name, timestamp').order('timestamp', { ascending: false })
+      ]);
 
-      if (error) {
-        console.error('Error fetching users:', error);
-        return;
+      const allUsers = new Set<string>();
+      const userTimestamps: { [key: string]: string } = {};
+
+      // Add users from posts
+      if (postsData.data) {
+        postsData.data.forEach(post => {
+          if (post.author_name && post.author_name !== username) {
+            allUsers.add(post.author_name);
+            if (!userTimestamps[post.author_name]) {
+              userTimestamps[post.author_name] = post.timestamp;
+            }
+          }
+        });
       }
 
-      // Get unique users from posts
-      const uniqueUsers = data?.reduce((acc: RegisteredUser[], post) => {
-        if (!acc.find(user => user.author_name === post.author_name) && post.author_name !== username) {
-          acc.push({
-            id: `user-${post.author_name}`,
-            author_name: post.author_name,
-            timestamp: post.timestamp
-          });
-        }
-        return acc;
-      }, []) || [];
+      // Add users from chat
+      if (chatData.data) {
+        chatData.data.forEach(chat => {
+          if (chat.sender_name && chat.sender_name !== username) {
+            allUsers.add(chat.sender_name);
+            if (!userTimestamps[chat.sender_name]) {
+              userTimestamps[chat.sender_name] = chat.timestamp;
+            }
+          }
+        });
+      }
 
-      setRegisteredUsers(uniqueUsers.slice(0, 20)); // Show max 20 users
+      // Add users from reports
+      if (reportsData.data) {
+        reportsData.data.forEach(report => {
+          if (report.guest_name && report.guest_name !== username) {
+            allUsers.add(report.guest_name);
+            if (!userTimestamps[report.guest_name]) {
+              userTimestamps[report.guest_name] = report.timestamp;
+            }
+          }
+        });
+      }
+
+      const uniqueUsers = Array.from(allUsers).map(author_name => ({
+        id: `user-${author_name}`,
+        author_name,
+        timestamp: userTimestamps[author_name] || new Date().toISOString()
+      }));
+
+      setRegisteredUsers(uniqueUsers.slice(0, 50)); // Show more users for better discovery
     } catch (error) {
       console.error('Unexpected error:', error);
     } finally {

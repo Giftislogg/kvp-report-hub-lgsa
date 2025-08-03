@@ -94,7 +94,7 @@ const HomePage: React.FC<HomePageProps> = ({
                   <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
                     <CardContent className="p-3 text-center">
                       <div className="text-2xl font-bold text-green-600">127</div>
-                      <div className="text-xs text-green-700">Players Online</div>
+                      <div className="text-xs text-green-700">Lobby Online Players</div>
                     </CardContent>
                   </Card>
                   <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
