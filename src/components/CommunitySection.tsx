@@ -55,7 +55,7 @@ const CommunitySection: React.FC<CommunitySectionProps> = ({ username }) => {
             <Users className="w-4 h-4" />
             Suggested Friends
           </h3>
-          <SuggestedFriends username={username} />
+          
         </CardContent>
       </Card>
 
