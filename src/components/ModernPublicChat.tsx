@@ -414,35 +414,37 @@ const ModernPublicChat: React.FC<ModernPublicChatProps> = ({ guestName }) => {
                     >
                       <Reply className="w-3 h-3" />
                     </Button>
-                    <div className="relative">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm shadow-sm"
-                        onClick={() => setShowEmojiPicker(showEmojiPicker === msg.id ? null : msg.id)}
-                      >
-                        <Smile className="w-3 h-3" />
-                      </Button>
-                      {showEmojiPicker === msg.id && (
-                        <div className="absolute top-8 right-0 bg-white border rounded-lg shadow-lg p-2 z-20">
-                          <div className="grid grid-cols-3 gap-1">
-                            {['❤️', '😂', '👍', '👎', '😮', '😢'].map((emoji) => (
-                              <button
-                                key={emoji}
-                                className="hover:bg-gray-100 p-2 rounded text-lg"
-                                onClick={() => {
-                                  addReaction(msg.id, emoji);
-                                  setShowEmojiPicker(null);
-                                }}
-                              >
-                                {emoji}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm shadow-sm"
+                      onClick={() => setShowEmojiPicker(showEmojiPicker === msg.id ? null : msg.id)}
+                    >
+                      <Smile className="w-3 h-3" />
+                    </Button>
                   </div>
+
+                  {/* Horizontal sliding emoji picker under message */}
+                  {showEmojiPicker === msg.id && (
+                    <div className="mt-2 animate-slide-in-right">
+                      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        {['❤️', '👍', '😂', '😮', '😢', '😡', '🔥', '💯', '🎉', '👀'].map((emoji) => (
+                          <Button
+                            key={emoji}
+                            size="sm"
+                            variant="ghost"
+                            className="p-2 h-10 w-10 flex-shrink-0 hover:bg-gray-100 transition-all duration-200 hover:scale-110"
+                            onClick={() => {
+                              addReaction(msg.id, emoji);
+                              setShowEmojiPicker(null);
+                            }}
+                          >
+                            <span className="text-lg">{emoji}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {msg.sender_name === guestName && (

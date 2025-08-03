@@ -99,8 +99,8 @@ const HomePage: React.FC<HomePageProps> = ({
                   </Card>
                   <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
                     <CardContent className="p-3 text-center">
-                      <div className="text-2xl font-bold text-blue-600">24/7</div>
-                      <div className="text-xs text-blue-700">Server Uptime</div>
+                      <div className="text-sm font-bold text-blue-600">play.lgsa-tm.com:3314</div>
+                      <div className="text-xs text-blue-700">Server IP</div>
                     </CardContent>
                   </Card>
                 </div>
