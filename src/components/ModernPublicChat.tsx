@@ -455,164 +455,149 @@ const ModernPublicChat: React.FC<ModernPublicChatProps> = ({ guestName }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Floating toggle button */}
-      <div className="fixed bottom-20 right-4 z-50">
-        <Button
-          onClick={() => setShowInput(!showInput)}
-          className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all"
-          disabled={isMuted}
-        >
-          {showInput ? <ChevronDown className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
-        </Button>
-      </div>
+      {/* Modern chat input area - always visible */}
+      <div className="relative z-10 bg-white/95 backdrop-blur-sm border-t p-4 shadow-2xl">
+        {/* Reply indicator */}
+        {replyingTo && (
+          <div className="mb-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-blue-600">
+                Replying to {replyingTo.sender_name}
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setReplyingTo(null)}
+                className="h-4 w-4 p-0"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+            <p className="text-sm mt-1 truncate text-gray-700">{replyingTo.message}</p>
+          </div>
+        )}
 
-      {/* Modern chat input overlay */}
-      {showInput && (
-        <div className="fixed inset-x-0 bottom-0 z-40 animate-slide-in-bottom">
-          <div className="bg-white/95 backdrop-blur-sm border-t p-4 shadow-2xl">
-            {/* Reply indicator */}
-            {replyingTo && (
-              <div className="mb-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-blue-600">
-                    Replying to {replyingTo.sender_name}
-                  </span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setReplyingTo(null)}
-                    className="h-4 w-4 p-0"
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-                <p className="text-sm mt-1 truncate text-gray-700">{replyingTo.message}</p>
+        {/* Media previews */}
+        {(selectedImage || voiceBlob) && (
+          <div className="mb-3 space-y-2">
+            {selectedImage && (
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                <Image className="w-4 h-4" />
+                <span className="text-sm flex-1 truncate">{selectedImage.name}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedImage(null)}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
               </div>
             )}
-
-            {/* Media previews */}
-            {(selectedImage || voiceBlob) && (
-              <div className="mb-3 space-y-2">
-                {selectedImage && (
-                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                    <Image className="w-4 h-4" />
-                    <span className="text-sm flex-1 truncate">{selectedImage.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedImage(null)}
-                      className="h-6 w-6 p-0"
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-                {voiceBlob && (
-                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                    <Mic className="w-4 h-4" />
-                    <span className="text-sm flex-1">Voice message ({Math.round(voiceBlob.size / 1024)}KB)</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setVoiceBlob(null)}
-                      className="h-6 w-6 p-0"
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
+            {voiceBlob && (
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                <Mic className="w-4 h-4" />
+                <span className="text-sm flex-1">Voice message ({Math.round(voiceBlob.size / 1024)}KB)</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setVoiceBlob(null)}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
               </div>
             )}
+          </div>
+        )}
 
-            {/* Action buttons above input */}
-            <div className="bg-white border rounded-lg p-3 mb-3 shadow-sm">
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2">
-                  {/* Image upload */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isMuted || selectedImage !== null}
-                    className="flex items-center gap-1 border-2 border-blue-300 hover:bg-blue-50 text-blue-600"
-                  >
-                    <Image className="w-4 h-4" />
-                    <span className="text-xs">Image</span>
-                  </Button>
-                  
-                  {/* Voice recording */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={isRecording ? stopRecording : startRecording}
-                    disabled={isMuted || voiceBlob !== null}
-                    className={`flex items-center gap-1 border-2 ${isRecording 
-                      ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' 
-                      : 'border-green-300 hover:bg-green-50 text-green-600'
-                    }`}
-                  >
-                    {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    <span className="text-xs">{isRecording ? 'Stop' : 'Voice'}</span>
-                  </Button>
-                  
-                  {isRecording && (
-                    <span className="text-sm text-red-500 flex items-center font-medium">
-                      Recording: {recordingTime}s / 30s
-                    </span>
-                  )}
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 font-medium">
-                    {message.length}/500
-                  </span>
-                  <Button 
-                    onClick={handleSendMessage}
-                    disabled={isMuted || (!message.trim() && !selectedImage && !voiceBlob)}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center gap-1 border-0 text-white font-medium"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span className="text-xs">Send</span>
-                  </Button>
-                </div>
-              </div>
+        {/* Action buttons above input */}
+        <div className="bg-white border rounded-lg p-3 mb-3 shadow-sm">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              {/* Image upload */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isMuted || selectedImage !== null}
+                className="flex items-center gap-1 border-2 border-blue-300 hover:bg-blue-50 text-blue-600"
+              >
+                <Image className="w-4 h-4" />
+                <span className="text-xs">Image</span>
+              </Button>
+              
+              {/* Voice recording */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isMuted || voiceBlob !== null}
+                className={`flex items-center gap-1 border-2 ${isRecording 
+                  ? 'bg-red-500 text-white border-red-500 hover:bg-red-600' 
+                  : 'border-green-300 hover:bg-green-50 text-green-600'
+                }`}
+              >
+                {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                <span className="text-xs">{isRecording ? 'Stop' : 'Voice'}</span>
+              </Button>
+              
+              {isRecording && (
+                <span className="text-sm text-red-500 flex items-center font-medium">
+                  Recording: {recordingTime}s / 30s
+                </span>
+              )}
             </div>
-
-            {/* Input area */}
-            <div className="flex-1">
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder={isMuted ? "You are muted and cannot send messages" : "Type your message..."}
-                className="min-h-[80px] resize-none border-2 border-gray-300 focus:border-blue-500 w-full rounded-lg p-3 text-base"
-                maxLength={500}
-                disabled={isMuted}
-              />
+            
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 font-medium">
+                {message.length}/500
+              </span>
+              <Button 
+                onClick={handleSendMessage}
+                disabled={isMuted || (!message.trim() && !selectedImage && !voiceBlob)}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 flex items-center gap-1 border-0 text-white font-medium"
+              >
+                <Send className="w-4 h-4" />
+                <span className="text-xs">Send</span>
+              </Button>
             </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  if (file.size > 5 * 1024 * 1024) {
-                    toast.error('Image size must be less than 5MB');
-                    return;
-                  }
-                  setSelectedImage(file);
-                }
-              }}
-              className="hidden"
-            />
           </div>
         </div>
-      )}
+
+        {/* Input area */}
+        <div className="flex-1">
+          <Textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={isMuted ? "You are muted and cannot send messages" : "Type your message..."}
+            className="min-h-[80px] resize-none border-2 border-gray-300 focus:border-blue-500 w-full rounded-lg p-3 text-base"
+            maxLength={500}
+            disabled={isMuted}
+          />
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              if (file.size > 5 * 1024 * 1024) {
+                toast.error('Image size must be less than 5MB');
+                return;
+              }
+              setSelectedImage(file);
+            }
+          }}
+          className="hidden"
+        />
+      </div>
     </div>
   );
 };
