@@ -65,18 +65,44 @@ const HomePage: React.FC<HomePageProps> = ({
               <>
                 {/* Hero Section */}
                 <div className="text-center mb-4">
-                  <div className="bg-black text-white p-4 rounded-lg mb-4">
-                    <h1 className="text-xl font-bold mb-2">
+                  <div className="bg-gradient-to-r from-black via-gray-900 to-black text-white p-6 rounded-xl mb-4 shadow-2xl">
+                    <div className="animate-pulse mb-2">
+                      <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mx-auto mb-3 flex items-center justify-center">
+                        <span className="text-2xl font-bold">KV</span>
+                      </div>
+                    </div>
+                    <h1 className="text-2xl font-bold mb-3 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                       KVRP - KASI Vibes Role-Play
                     </h1>
-                    <p className="text-sm text-gray-300 mb-2">
-                      Welcome to the ultimate South African GTA roleplay experience
+                    <p className="text-sm text-gray-300 mb-3 font-medium">
+                      🎮 Welcome to the ultimate South African GTA roleplay experience 🎮
                     </p>
-                    <p className="text-gray-400 max-w-2xl mx-auto text-xs">
+                    <p className="text-gray-400 max-w-2xl mx-auto text-xs leading-relaxed">
                       With GTAM ONLINE, KVRP brings the heart of the GTA MZANSI experience to a living online world with multiple players. 
                       Just what you choose to do in that world, it's up to you...
                     </p>
+                    <div className="flex justify-center gap-2 mt-4">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                      <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                    </div>
                   </div>
+                </div>
+
+                {/* Live Stats Section */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+                    <CardContent className="p-3 text-center">
+                      <div className="text-2xl font-bold text-green-600">127</div>
+                      <div className="text-xs text-green-700">Players Online</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+                    <CardContent className="p-3 text-center">
+                      <div className="text-2xl font-bold text-blue-600">24/7</div>
+                      <div className="text-xs text-blue-700">Server Uptime</div>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 {/* Main Screenshot */}

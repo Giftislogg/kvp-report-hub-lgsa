@@ -81,10 +81,24 @@ const AdminPanel: React.FC = () => {
   const [announcementContent, setAnnouncementContent] = useState('');
   const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
   const [selectedTab, setSelectedTab] = useState('reports');
+  const [adminPassword, setAdminPassword] = useState('');
 
   useEffect(() => {
     fetchAllData();
     fetchUserSuggestions();
+
+    // Check admin password
+    const checkPassword = () => {
+      const password = prompt('Enter admin password:');
+      if (password !== 'kvrplobby') {
+        alert('Incorrect password');
+        window.location.href = '/';
+        return false;
+      }
+      return true;
+    };
+
+    if (!checkPassword()) return;
 
     // Subscribe to real-time updates for admin messages (user replies)
     const messagesChannel = supabase

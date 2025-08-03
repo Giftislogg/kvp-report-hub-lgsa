@@ -385,15 +385,15 @@ const ModernPublicChat: React.FC<ModernPublicChatProps> = ({ guestName }) => {
                   
                   {/* Reactions */}
                   {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
+                    <div className="flex flex-wrap gap-2 mt-2">
                       {Object.entries(msg.reactions).map(([emoji, users]) => 
                         users.length > 0 && (
                           <button
                             key={emoji}
-                            className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                            className={`text-sm px-3 py-1.5 rounded-full border transition-all hover:scale-105 ${
                               users.includes(guestName)
-                                ? 'bg-blue-100 border-blue-300 text-blue-700'
-                                : 'bg-white border-gray-300 hover:bg-gray-50'
+                                ? 'bg-blue-500 border-blue-600 text-white shadow-md'
+                                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 shadow-sm'
                             }`}
                             onClick={() => addReaction(msg.id, emoji)}
                           >

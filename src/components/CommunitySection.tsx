@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Users } from "lucide-react";
 import PostCreator from './PostCreator';
 import PostsList from './PostsList';
+import SuggestedFriends from './SuggestedFriends';
 
 interface CommunitySectionProps {
   username?: string;
@@ -46,6 +47,17 @@ const CommunitySection: React.FC<CommunitySectionProps> = ({ username }) => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Community Posts</h1>
         <p className="text-gray-600">Share your experiences and connect with fellow KVRP players</p>
       </div>
+
+      {/* Suggested Friends Section */}
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Suggested Friends
+          </h3>
+          <SuggestedFriends username={username} />
+        </CardContent>
+      </Card>
 
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Latest Posts</h2>

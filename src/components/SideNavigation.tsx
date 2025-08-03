@@ -231,14 +231,26 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
     }
 
     try {
-      // Check if they're already friends or if request already exists
+      // Check if they're already friends
+      const { data: existingFriendship } = await supabase
+        .from('friends')
+        .select('*')
+        .or(`and(user1.eq.${username},user2.eq.${friendName}),and(user1.eq.${friendName},user2.eq.${username})`);
+
+      if (existingFriendship && existingFriendship.length > 0) {
+        toast.error('Already friends with this user');
+        return;
+      }
+
+      // Check for existing notifications
       const { data: existingNotifications } = await supabase
         .from('notifications')
         .select('*')
-        .or(`and(from_user.eq.${username},to_user.eq.${friendName},type.eq.friend_request),and(from_user.eq.${friendName},to_user.eq.${username},type.eq.friend_request)`);
+        .or(`and(from_user.eq.${username},to_user.eq.${friendName},type.eq.friend_request),and(from_user.eq.${friendName},to_user.eq.${username},type.eq.friend_request)`)
+        .eq('read', false);
 
       if (existingNotifications && existingNotifications.length > 0) {
-        toast.error('Friend request already sent or received');
+        toast.error('Friend request already exists');
         return;
       }
 
@@ -260,6 +272,7 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
       }
 
       toast.success(`Friend request sent to ${friendName}`);
+      fetchRegisteredUsers(); // Refresh the list
     } catch (error) {
       console.error('Unexpected error:', error);
       toast.error('Failed to send friend request');
