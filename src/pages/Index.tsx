@@ -149,10 +149,13 @@ const Index = () => {
         {renderCurrentPage()}
       </main>
 
-      <BottomNavigation 
-        currentPage={currentPage} 
-        onNavigate={handleNavigate} 
-      />
+      {/* Hide bottom navigation and help bot on chat pages */}
+      {!['public-chat', 'private-chat', 'messages'].includes(currentPage) && (
+        <BottomNavigation 
+          currentPage={currentPage} 
+          onNavigate={handleNavigate} 
+        />
+      )}
 
       <AuthModal 
         isOpen={showAuthModal} 

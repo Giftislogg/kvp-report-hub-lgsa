@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Moon, Sun, Trash2, Shield, ExternalLink } from "lucide-react";
+import { User, Moon, Sun, Trash2, Shield, ExternalLink, Camera, Palette } from "lucide-react";
 
 interface SettingsPageProps {
   username: string;
@@ -20,6 +20,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'blue' | 'purple' | 'green'>('blue');
 
   useEffect(() => {
     const darkMode = localStorage.getItem('darkMode') === 'true';
@@ -27,7 +29,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
     if (darkMode) {
       document.documentElement.classList.add('dark');
     }
-  }, []);
+
+    // Load profile picture and theme
+    const savedPicture = localStorage.getItem(`profilePicture_${username}`);
+    const savedTheme = localStorage.getItem(`theme_${username}`) as 'blue' | 'purple' | 'green';
+    if (savedPicture) setProfilePicture(savedPicture);
+    if (savedTheme) setTheme(savedTheme);
+  }, [username]);
 
   const toggleDarkMode = () => {
     const newDarkMode = !isDarkMode;
@@ -65,18 +73,62 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
   };
 
   const handleAdminLogin = () => {
-    if (adminPassword === 'LimitlessLGASGL') {
+    if (adminPassword === 'kvrplobby') {
       toast.success("Admin access granted");
       onNavigate('admin');
       setAdminPassword('');
       setShowAdminLogin(false);
     } else {
-      toast.error("Invalid admin password");
+      toast.error("Invalid password");
     }
   };
 
   const visitOfficialWebsite = () => {
     window.open('https://lgsa-tm.com', '_blank');
+  };
+
+  const handleProfilePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setProfilePicture(result);
+        localStorage.setItem(`profilePicture_${username}`, result);
+        toast.success("Profile picture updated!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeProfilePicture = () => {
+    setProfilePicture(null);
+    localStorage.removeItem(`profilePicture_${username}`);
+    toast.success("Profile picture removed!");
+  };
+
+  const changeTheme = (newTheme: 'blue' | 'purple' | 'green') => {
+    setTheme(newTheme);
+    localStorage.setItem(`theme_${username}`, newTheme);
+    
+    // Apply theme colors to root
+    const root = document.documentElement;
+    switch (newTheme) {
+      case 'blue':
+        root.style.setProperty('--primary', '217 91% 60%');
+        root.style.setProperty('--primary-foreground', '0 0% 98%');
+        break;
+      case 'purple':
+        root.style.setProperty('--primary', '262 83% 58%');
+        root.style.setProperty('--primary-foreground', '0 0% 98%');
+        break;
+      case 'green':
+        root.style.setProperty('--primary', '142 76% 36%');
+        root.style.setProperty('--primary-foreground', '0 0% 98%');
+        break;
+    }
+    
+    toast.success(`${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)} theme applied!`);
   };
 
   return (
@@ -92,6 +144,41 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Profile Picture */}
+              <div>
+                <Label>Profile Picture</Label>
+                <div className="flex items-center gap-4 mt-2">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl overflow-hidden">
+                    {profilePicture ? (
+                      <img src={profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      username.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfilePictureChange}
+                        className="hidden"
+                      />
+                      <Button variant="outline" size="sm" asChild>
+                        <span>
+                          <Camera className="w-4 h-4 mr-2" />
+                          Change Picture
+                        </span>
+                      </Button>
+                    </label>
+                    {profilePicture && (
+                      <Button variant="outline" size="sm" onClick={removeProfilePicture}>
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <Label>Username</Label>
                 <div className="flex items-center gap-2 mt-1">
@@ -110,15 +197,49 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
         {/* Appearance */}
         <Card>
           <CardHeader>
-            <CardTitle>Appearance</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="w-5 h-5" />
+              Appearance
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {isDarkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                <Label>Dark Mode</Label>
+            <div className="space-y-4">
+              {/* Dark Mode */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {isDarkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                  <Label>Dark Mode</Label>
+                </div>
+                <Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
               </div>
-              <Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
+
+              {/* Theme Colors */}
+              <div>
+                <Label className="text-sm font-medium">App Theme</Label>
+                <div className="flex gap-3 mt-2">
+                  <button
+                    onClick={() => changeTheme('blue')}
+                    className={`w-8 h-8 rounded-full bg-blue-500 border-2 ${
+                      theme === 'blue' ? 'border-gray-900 dark:border-white' : 'border-gray-300'
+                    }`}
+                    title="Blue theme"
+                  />
+                  <button
+                    onClick={() => changeTheme('purple')}
+                    className={`w-8 h-8 rounded-full bg-purple-500 border-2 ${
+                      theme === 'purple' ? 'border-gray-900 dark:border-white' : 'border-gray-300'
+                    }`}
+                    title="Purple theme"
+                  />
+                  <button
+                    onClick={() => changeTheme('green')}
+                    className={`w-8 h-8 rounded-full bg-green-500 border-2 ${
+                      theme === 'green' ? 'border-gray-900 dark:border-white' : 'border-gray-300'
+                    }`}
+                    title="Green theme"
+                  />
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

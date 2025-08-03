@@ -91,7 +91,7 @@ const AdminPanel: React.FC = () => {
     const checkPassword = () => {
       const password = prompt('Enter admin password:');
       if (password !== 'kvrplobby') {
-        alert('Incorrect password');
+        alert('Invalid password');
         window.location.href = '/';
         return false;
       }

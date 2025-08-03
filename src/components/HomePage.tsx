@@ -11,6 +11,7 @@ import GamesSection from './GamesSection';
 import CommunitySection from './CommunitySection';
 import FloatingChatButton from './FloatingChatButton';
 import PostsPage from './PostsPage';
+import LivePlayerCount from './LivePlayerCount';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -93,8 +94,7 @@ const HomePage: React.FC<HomePageProps> = ({
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
                     <CardContent className="p-3 text-center">
-                      <div className="text-2xl font-bold text-green-600">127</div>
-                      <div className="text-xs text-green-700">Lobby Online Players</div>
+                      <LivePlayerCount />
                     </CardContent>
                   </Card>
                   <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
@@ -195,8 +195,8 @@ const HomePage: React.FC<HomePageProps> = ({
         {renderContent()}
       </div>
 
-      {/* Floating Chat Button */}
-      {username && <FloatingChatButton guestName={username} />}
+      {/* Floating Chat Button - Only show on home page */}
+      {username && currentPage === 'home' && <FloatingChatButton guestName={username} />}
     </div>
   );
 };
