@@ -11,7 +11,8 @@ interface BottomNavigationProps {
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({ 
   currentPage, 
-  onNavigate
+  onNavigate,
+  isStaff
 }) => {
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
