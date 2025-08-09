@@ -22,6 +22,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [theme, setTheme] = useState<'blue' | 'purple' | 'green'>('blue');
+  const [userBadges, setUserBadges] = useState<{ staff: boolean; verified: boolean; bot: boolean } | null>(null);
+  const [showRoles, setShowRoles] = useState(false);
 
   useEffect(() => {
     const darkMode = localStorage.getItem('darkMode') === 'true';

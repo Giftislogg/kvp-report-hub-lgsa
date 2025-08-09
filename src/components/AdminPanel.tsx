@@ -89,12 +89,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
     fetchAllData();
     fetchUserSuggestions();
 
-    // Check admin password
+    // Check admin password unless skipPassword
     const checkPassword = () => {
+      if (skipPassword) return true;
       const password = prompt('Enter admin password:');
       if (password !== 'kvrplobby') {
         alert('Invalid password');
-        window.location.href = '/';
         return false;
       }
       return true;
@@ -553,6 +553,63 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
     }
   };
 
+  // Clear all public chat history
+  const clearPublicChatHistory = async () => {
+    if (!confirm('Are you sure you want to clear ALL public chat messages? This cannot be undone.')) return;
+    try {
+      const { error } = await supabase
+        .from('public_chat')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (error) {
+        console.error('Error clearing public chat:', error);
+        toast.error('Failed to clear public chat');
+        return;
+      }
+      toast.success('Public chat history cleared');
+      fetchAllData();
+    } catch (error) {
+      console.error('Unexpected error clearing chat:', error);
+      toast.error('Failed to clear public chat');
+    }
+  };
+
+  // Toggle a user's role in user_badges table
+  const toggleUserRole = async (userName: string, key: 'staff' | 'verified' | 'bot') => {
+    try {
+      const { data: existing, error: selError } = await supabase
+        .from('user_badges')
+        .select('*')
+        .eq('user_name', userName)
+        .maybeSingle();
+
+      if (selError) {
+        console.error('Select role error:', selError);
+      }
+
+      if (existing) {
+        const newValue = !(existing as any)[key];
+        const { error: updError } = await supabase
+          .from('user_badges')
+          .update({ [key]: newValue })
+          .eq('id', (existing as any).id);
+        if (updError) throw updError;
+        toast.success(`${key} ${newValue ? 'enabled' : 'disabled'} for ${userName}`);
+      } else {
+        const insertPayload: any = { user_name: userName, staff: false, verified: false, bot: false };
+        insertPayload[key] = true;
+        const { error: insError } = await supabase
+          .from('user_badges')
+          .insert(insertPayload);
+        if (insError) throw insError;
+        toast.success(`${key} enabled for ${userName}`);
+      }
+    } catch (error) {
+      console.error('Role toggle error:', error);
+      toast.error('Failed to toggle role');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6 pb-20">
@@ -633,6 +690,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
               <span className="font-semibold">Tutorials</span>
             </Button>
             
+            <Button 
+              onClick={() => setSelectedTab("roles")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white border-0 shadow-lg"
+            >
+              <Users className="w-6 h-6" />
+              <span className="font-semibold">Users & Roles</span>
+            </Button>
+
             <Button 
               onClick={() => setSelectedTab("mute")}
               className="h-20 flex flex-col gap-2 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white border-0 shadow-lg"
@@ -745,6 +810,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
               <TabsTrigger value="posts">Posts</TabsTrigger>
               <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
               <TabsTrigger value="announcements">Announcements</TabsTrigger>
+              <TabsTrigger value="roles">Users & Roles</TabsTrigger>
               <TabsTrigger value="mute">Mute</TabsTrigger>
             </TabsList>
 
@@ -935,9 +1001,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
             <TabsContent value="messages">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+                  <CardTitle className="flex items-center justify-between gap-2">
                     <span>Public Chat History ({publicMessages.length} messages)</span>
-                    <Badge variant="secondary">Admin Mode</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">Admin Mode</Badge>
+                      <Button onClick={clearPublicChatHistory} variant="destructive" size="sm">
+                        <Trash2 className="w-4 h-4 mr-1" /> Clear History
+                      </Button>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1104,6 +1175,35 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
 
             <TabsContent value="tutorials">
               <TutorialManager />
+            </TabsContent>
+
+            <TabsContent value="roles">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Assign Roles</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {userSuggestions.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-4">No users found</p>
+                    ) : (
+                      userSuggestions.map((u) => (
+                        <div key={u.username} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <p className="font-semibold">{u.username}</p>
+                            <p className="text-xs text-gray-500">{u.last_seen}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => toggleUserRole(u.username, 'staff')}>Toggle Staff</Button>
+                            <Button size="sm" variant="outline" onClick={() => toggleUserRole(u.username, 'verified')}>Toggle Verified</Button>
+                            <Button size="sm" variant="outline" onClick={() => toggleUserRole(u.username, 'bot')}>Toggle Bot</Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="messages">
