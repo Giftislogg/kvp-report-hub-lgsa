@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Menu, X } from "lucide-react";
@@ -12,6 +12,7 @@ import CommunitySection from './CommunitySection';
 import FloatingChatButton from './FloatingChatButton';
 import PostsPage from './PostsPage';
 import LivePlayerCount from './LivePlayerCount';
+import FloatingHelpBot from './FloatingHelpBot';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -31,6 +32,16 @@ const HomePage: React.FC<HomePageProps> = ({
   const [activeSection, setActiveSection] = useState('home');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showPublicChat, setShowPublicChat] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+
+  // Listen for global menu open events from BottomNavigation
+  useEffect(() => {
+    const handler = () => setIsDrawerOpen(true);
+    (window as any).addEventListener('open-mobile-menu', handler);
+    return () => {
+      (window as any).removeEventListener('open-mobile-menu', handler);
+    };
+  }, []);
 
   const handleSectionChange = (section: string) => {
     setActiveSection(section);
@@ -196,7 +207,12 @@ const HomePage: React.FC<HomePageProps> = ({
       </div>
 
       {/* Floating Chat Button - Only show on home page */}
-      {username && currentPage === 'home' && <FloatingChatButton guestName={username} />}
+      {username && currentPage === 'home' && (
+        <>
+          <FloatingChatButton guestName={username} onOpenChange={setChatOpen} />
+          {!chatOpen && <FloatingHelpBot />}
+        </>
+      )}
     </div>
   );
 };

@@ -9,7 +9,6 @@ import AdminPanel from '@/components/AdminPanel';
 import NotificationsPage from '@/components/NotificationsPage';
 import SettingsPage from '@/components/SettingsPage';
 import AuthModal from '@/components/AuthModal';
-import FloatingHelpBot from '@/components/FloatingHelpBot';
 import { toast } from "sonner";
 
 const Index = () => {
@@ -18,6 +17,7 @@ const Index = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingPage, setPendingPage] = useState<string | null>(null);
   const [navigationData, setNavigationData] = useState<any>(null);
+  const [isStaff, setIsStaff] = useState<boolean>(false);
 
   // Load user data from localStorage on mount
   useEffect(() => {
@@ -25,7 +25,7 @@ const Index = () => {
     if (savedUsername) {
       setUsername(savedUsername);
     }
-  }, []);
+  }, [username]);
 
   const handleAuthSubmit = async (inputUsername: string, password: string, isNewUser: boolean) => {
     try {
@@ -149,11 +149,12 @@ const Index = () => {
         {renderCurrentPage()}
       </main>
 
-      {/* Hide bottom navigation and help bot on chat pages */}
+      {/* Hide bottom navigation on chat pages */}
       {!['public-chat', 'private-chat', 'messages'].includes(currentPage) && (
         <BottomNavigation 
           currentPage={currentPage} 
           onNavigate={handleNavigate} 
+          isStaff={isStaff}
         />
       )}
 
@@ -161,8 +162,6 @@ const Index = () => {
         isOpen={showAuthModal} 
         onSubmit={handleAuthSubmit} 
       />
-
-      {currentPage === 'home' && <FloatingHelpBot />}
     </div>
   );
 };

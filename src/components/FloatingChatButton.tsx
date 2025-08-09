@@ -5,9 +5,10 @@ import ModernPublicChat from './ModernPublicChat';
 
 interface FloatingChatButtonProps {
   guestName: string;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ guestName }) => {
+const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ guestName, onOpenChange }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -15,8 +16,12 @@ const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ guestName }) =>
       {/* Floating Chat Button */}
       <div className="fixed bottom-20 left-4 z-50">
         <Button
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all text-white"
+          onClick={() => {
+            const next = !isOpen;
+            setIsOpen(next);
+            onOpenChange?.(next);
+          }}
+          className="w-14 h-14 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all text-white"
         >
           {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
         </Button>
@@ -33,7 +38,7 @@ const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({ guestName }) =>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => { setIsOpen(false); onOpenChange?.(false); }}
                   className="text-white hover:bg-white/20"
                 >
                   <X className="w-5 h-5" />

@@ -444,6 +444,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_badges: {
+        Row: {
+          bot: boolean
+          created_at: string
+          id: string
+          staff: boolean
+          user_name: string
+          verified: boolean
+        }
+        Insert: {
+          bot?: boolean
+          created_at?: string
+          id?: string
+          staff?: boolean
+          user_name: string
+          verified?: boolean
+        }
+        Update: {
+          bot?: boolean
+          created_at?: string
+          id?: string
+          staff?: boolean
+          user_name?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
