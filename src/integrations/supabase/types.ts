@@ -313,6 +313,33 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          id: string
+          profile_picture_url: string | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          profile_picture_url?: string | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          profile_picture_url?: string | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       public_chat: {
         Row: {
           id: string
@@ -422,6 +449,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_missing_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       delete_old_voice_notes: {
         Args: Record<PropertyKey, never>
         Returns: undefined
