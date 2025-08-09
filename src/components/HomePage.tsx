@@ -12,7 +12,7 @@ import CommunitySection from './CommunitySection';
 import FloatingChatButton from './FloatingChatButton';
 import PostsPage from './PostsPage';
 import LivePlayerCount from './LivePlayerCount';
-import FloatingHelpBot from './FloatingHelpBot';
+import SuggestedFriends from './SuggestedFriends';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -146,6 +146,17 @@ const HomePage: React.FC<HomePageProps> = ({
                   </CardContent>
                 </Card>
 
+                {username && (
+                  <Card className="mb-4 animate-fade-in">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">People you may know</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <SuggestedFriends username={username} />
+                    </CardContent>
+                  </Card>
+                )}
+
                 {!username && (
                   <Card>
                     <CardContent className="p-4 text-center">
@@ -167,14 +178,6 @@ const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Mobile Side Navigation Button - Fixed Position */}
-      <Button
-        onClick={() => setIsDrawerOpen(true)}
-        className="fixed top-16 left-2 z-40 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg"
-        size="sm"
-      >
-        <Menu className="w-4 h-4" />
-      </Button>
 
       {/* Mobile Side Navigation Drawer */}
       <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
@@ -208,10 +211,7 @@ const HomePage: React.FC<HomePageProps> = ({
 
       {/* Floating Chat Button - Only show on home page */}
       {username && currentPage === 'home' && (
-        <>
-          <FloatingChatButton guestName={username} onOpenChange={setChatOpen} />
-          {!chatOpen && <FloatingHelpBot />}
-        </>
+        <FloatingChatButton guestName={username} onOpenChange={setChatOpen} />
       )}
     </div>
   );

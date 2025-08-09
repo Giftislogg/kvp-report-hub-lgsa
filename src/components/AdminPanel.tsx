@@ -60,7 +60,9 @@ interface UserSuggestion {
   last_seen: string;
 }
 
-const AdminPanel: React.FC = () => {
+interface AdminPanelProps { skipPassword?: boolean }
+
+const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
   const [reports, setReports] = useState<Report[]>([]);
   const [publicMessages, setPublicMessages] = useState<PublicMessage[]>([]);
   const [privateMessages, setPrivateMessages] = useState<PrivateMessage[]>([]);
