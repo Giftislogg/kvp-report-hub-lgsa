@@ -122,15 +122,6 @@ const Navigation: React.FC<NavigationProps> = ({
         </div>
       </nav>
 
-      {/* Admin Panel Button - Fixed at bottom right */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <Button
-          onClick={() => setShowAdminLogin(true)}
-          className="bg-red-600 hover:bg-red-700 text-white shadow-lg rounded-full px-3 py-2 text-sm"
-        >
-          Admin
-        </Button>
-      </div>
 
       {/* Admin Login Dialog */}
       <Dialog open={showAdminLogin} onOpenChange={setShowAdminLogin}>

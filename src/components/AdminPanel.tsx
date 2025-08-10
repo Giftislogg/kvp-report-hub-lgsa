@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Trash2, Archive, UserX, Megaphone, X, CheckCircle, Send, Plus, MessageCircle, Users } from "lucide-react";
 import TutorialManager from './TutorialManager';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Report {
   id: string;
@@ -79,11 +80,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
   const [muteUsername, setMuteUsername] = useState('');
   const [muteReason, setMuteReason] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [announcementTitle, setAnnouncementTitle] = useState('');
-  const [announcementContent, setAnnouncementContent] = useState('');
-  const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
-  const [selectedTab, setSelectedTab] = useState('reports');
-  const [adminPassword, setAdminPassword] = useState('');
+const [announcementTitle, setAnnouncementTitle] = useState('');
+const [announcementContent, setAnnouncementContent] = useState('');
+const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
+const [selectedTab, setSelectedTab] = useState('reports');
+const [adminPassword, setAdminPassword] = useState('');
+const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchAllData();
@@ -832,7 +834,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
                           className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
                             selectedReport?.id === report.id ? 'bg-muted border-primary' : ''
                           }`}
-                          onClick={() => setSelectedReport(report)}
+onClick={() => { setSelectedReport(report); setReportDialogOpen(true); }}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
@@ -888,113 +890,106 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
                   </CardContent>
                 </Card>
 
-                {selectedReport && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <span>Report Details & Conversation</span>
-                        {selectedReport.status === 'closed' ? (
-                          <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
-                        ) : (
-                          <Badge variant="destructive">Open</Badge>
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <strong>Type:</strong> {selectedReport.type}
-                      </div>
-                      <div>
-                        <strong>Guest:</strong> {selectedReport.guest_name}
-                      </div>
-                      <div>
-                        <strong>Description:</strong>
-                        <p className="mt-1 text-sm bg-muted p-2 rounded">
-                          {selectedReport.description}
-                        </p>
-                      </div>
-                      {selectedReport.screenshot_url && (
-                        <div>
-                          <strong>Screenshot:</strong>
-                          <img 
-                            src={selectedReport.screenshot_url} 
-                            alt="Report screenshot" 
-                            className="mt-1 max-w-full h-auto rounded border"
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <strong>Submitted:</strong> {formatTime(selectedReport.timestamp)}
-                      </div>
+<Dialog open={reportDialogOpen} onOpenChange={(open) => { setReportDialogOpen(open); if (!open) setSelectedReport(null); }}>
+  <DialogContent className="max-w-2xl">
+    <DialogHeader>
+      <DialogTitle>Report Details & Conversation</DialogTitle>
+    </DialogHeader>
+    {selectedReport && (
+      <div className="space-y-4">
+        <div>
+          <strong>Type:</strong> {selectedReport.type}
+        </div>
+        <div>
+          <strong>Guest:</strong> {selectedReport.guest_name}
+        </div>
+        <div>
+          <strong>Description:</strong>
+          <p className="mt-1 text-sm bg-muted p-2 rounded">
+            {selectedReport.description}
+          </p>
+        </div>
+        {selectedReport.screenshot_url && (
+          <div>
+            <strong>Screenshot:</strong>
+            <img 
+              src={selectedReport.screenshot_url} 
+              alt="Report screenshot" 
+              className="mt-1 max-w-full h-auto rounded border"
+            />
+          </div>
+        )}
+        <div>
+          <strong>Submitted:</strong> {formatTime(selectedReport.timestamp)}
+        </div>
 
-                      {/* Conversation thread */}
-                      <div className="border-t pt-4">
-                        <strong className="block mb-3">Conversation:</strong>
-                        <div className="h-64 overflow-y-auto border rounded p-4 bg-muted/50 space-y-3">
-                          {reportReplies.length === 0 ? (
-                            <p className="text-muted-foreground text-center">No conversation yet</p>
-                          ) : (
-                            reportReplies.map((reply) => (
-                              <div key={reply.id} className={`flex ${reply.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
-                                  reply.sender_type === 'admin' 
-                                    ? 'bg-primary text-primary-foreground' 
-                                    : 'bg-blue-100 text-blue-900 border'
-                                }`}>
-                                  <div className="flex items-baseline gap-2 mb-1">
-                                    <span className="font-semibold text-xs">
-                                      {reply.sender_type === 'admin' ? 'Admin' : reply.guest_name}
-                                    </span>
-                                    <span className="text-xs opacity-70">
-                                      {formatTime(reply.timestamp)}
-                                    </span>
-                                  </div>
-                                  <div className="text-sm">{reply.message}</div>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
+        <div className="border-t pt-4">
+          <strong className="block mb-3">Conversation:</strong>
+          <div className="h-64 overflow-y-auto border rounded p-4 bg-muted/50 space-y-3">
+            {reportReplies.length === 0 ? (
+              <p className="text-muted-foreground text-center">No conversation yet</p>
+            ) : (
+              reportReplies.map((reply) => (
+                <div key={reply.id} className={`flex ${reply.sender_type === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
+                    reply.sender_type === 'admin' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-blue-100 text-blue-900 border'
+                  }`}>
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="font-semibold text-xs">
+                        {reply.sender_type === 'admin' ? 'Admin' : reply.guest_name}
+                      </span>
+                      <span className="text-xs opacity-70">
+                        {formatTime(reply.timestamp)}
+                      </span>
+                    </div>
+                    <div className="text-sm">{reply.message}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
-                      {/* Admin response form */}
-                      <form onSubmit={handleRespondToReport} className="space-y-4 border-t pt-4">
-                        <Textarea
-                          value={adminResponse}
-                          onChange={(e) => setAdminResponse(e.target.value)}
-                          placeholder="Type your response..."
-                          rows={4}
-                        />
-                        <div className="flex flex-col gap-2">
-                          <Button type="submit" className="w-full">
-                            <Send className="w-4 h-4 mr-2" />
-                            Send Response
-                          </Button>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              onClick={() => closeReport(selectedReport.id)}
-                              variant="outline"
-                              className="flex-1 text-blue-600 hover:text-blue-700"
-                            >
-                              <CheckCircle className="w-4 h-4 mr-1" />
-                              Close Report
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={() => deleteReport(selectedReport.id)}
-                              variant="outline"
-                              className="flex-1 text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4 mr-1" />
-                              Delete Report
-                            </Button>
-                          </div>
-                        </div>
-                      </form>
-                    </CardContent>
-                  </Card>
-                )}
+        <form onSubmit={handleRespondToReport} className="space-y-4 border-t pt-4">
+          <Textarea
+            value={adminResponse}
+            onChange={(e) => setAdminResponse(e.target.value)}
+            placeholder="Type your response..."
+            rows={4}
+          />
+          <div className="flex flex-col gap-2">
+            <Button type="submit" className="w-full">
+              <Send className="w-4 h-4 mr-2" />
+              Send Response
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={() => closeReport(selectedReport.id)}
+                variant="outline"
+                className="flex-1 text-blue-600 hover:text-blue-700"
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                Close Report
+              </Button>
+              <Button
+                type="button"
+                onClick={() => deleteReport(selectedReport.id)}
+                variant="outline"
+                className="flex-1 text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Delete Report
+              </Button>
+            </div>
+          </div>
+        </form>
+      </div>
+    )}
+  </DialogContent>
+</Dialog>
               </div>
             </TabsContent>
 

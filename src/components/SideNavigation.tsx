@@ -9,6 +9,7 @@ import UserAvatar from './UserAvatar';
 import AdminMessagesChat from './AdminMessagesChat';
 import FriendChat from './FriendChat';
 import MessagesAndFriends from './MessagesAndFriends';
+import ReportsCenter from './ReportsCenter';
 
 interface SideNavigationProps {
   activeSection: string;
@@ -68,15 +69,17 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
   const [reports, setReports] = useState<Report[]>([]);
   const [adminMessages, setAdminMessages] = useState<AdminMessage[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
-  const [showMessagesAndFriends, setShowMessagesAndFriends] = useState(false);
+const [showMessagesAndFriends, setShowMessagesAndFriends] = useState(false);
+const [showReportsCenter, setShowReportsCenter] = useState(false);
 
-  const navItems = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'announcements', label: 'Announcements', icon: Megaphone },
-    { id: 'tutorials', label: 'Videos', icon: BookOpen },
-    { id: 'games', label: 'Games', icon: Gamepad2, isNew: true },
-    { id: 'messages-friends', label: 'Messages & Friends', icon: MessageSquare },
-  ];
+const navItems = [
+  { id: 'home', label: 'Home', icon: Home },
+  { id: 'announcements', label: 'Announcements', icon: Megaphone },
+  { id: 'tutorials', label: 'Videos', icon: BookOpen },
+  { id: 'games', label: 'Games', icon: Gamepad2, isNew: true },
+  { id: 'messages-friends', label: 'Messages & Friends', icon: MessageSquare },
+  { id: 'reports-center', label: 'Reports', icon: FileText },
+];
 
   useEffect(() => {
     if (username) {
@@ -222,14 +225,18 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
     }
   };
 
-  const handleSectionChange = (section: string) => {
-    if (section === 'messages-friends') {
-      setShowMessagesAndFriends(true);
-      return;
-    }
-    onSectionChange(section);
-    if (onClose) onClose();
-  };
+const handleSectionChange = (section: string) => {
+  if (section === 'messages-friends') {
+    setShowMessagesAndFriends(true);
+    return;
+  }
+  if (section === 'reports-center') {
+    setShowReportsCenter(true);
+    return;
+  }
+  onSectionChange(section);
+  if (onClose) onClose();
+};
 
   const handleAddFriend = async (friendName: string) => {
     if (!username) {
@@ -415,14 +422,23 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
     );
   }
 
-  if (showMessagesAndFriends) {
-    return (
-      <MessagesAndFriends 
-        username={username} 
-        onBack={() => setShowMessagesAndFriends(false)} 
-      />
-    );
-  }
+if (showMessagesAndFriends) {
+  return (
+    <MessagesAndFriends 
+      username={username} 
+      onBack={() => setShowMessagesAndFriends(false)} 
+    />
+  );
+}
+
+if (showReportsCenter) {
+  return (
+    <ReportsCenter 
+      username={username} 
+      onBack={() => setShowReportsCenter(false)} 
+    />
+  );
+}
 
   return (
     <div className="h-full overflow-y-auto bg-white p-4 space-y-4">

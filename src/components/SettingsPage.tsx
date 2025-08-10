@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Moon, Sun, Trash2, Shield, ExternalLink, Camera, Palette } from "lucide-react";
+import { User, Moon, Sun, Trash2, ExternalLink, Camera, Palette } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AdminPanel from "@/components/AdminPanel";
 
 interface SettingsPageProps {
   username: string;
@@ -18,12 +19,10 @@ interface SettingsPageProps {
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLogout }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [theme, setTheme] = useState<'blue' | 'purple' | 'green'>('blue');
-  const [userBadges, setUserBadges] = useState<{ staff: boolean; verified: boolean; bot: boolean } | null>(null);
-  const [showRoles, setShowRoles] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
+  const [showAdminDialog, setShowAdminDialog] = useState(false);
 
   useEffect(() => {
     const darkMode = localStorage.getItem('darkMode') === 'true';
@@ -32,41 +31,40 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
       document.documentElement.classList.add('dark');
     }
 
-    // Load profile picture and theme
     const savedPicture = localStorage.getItem(`profilePicture_${username}`);
     const savedTheme = localStorage.getItem(`theme_${username}`) as 'blue' | 'purple' | 'green';
     if (savedPicture) setProfilePicture(savedPicture);
     if (savedTheme) setTheme(savedTheme);
   }, [username]);
 
+  useEffect(() => {
+    let mounted = true;
+    const checkStaff = async () => {
+      const { data } = await supabase
+        .from('user_badges')
+        .select('staff')
+        .eq('user_name', username)
+        .maybeSingle();
+      if (!mounted) return;
+      setIsStaff(!!data?.staff);
+    };
+    checkStaff();
+    return () => { mounted = false; };
+  }, [username]);
+
   const toggleDarkMode = () => {
     const newDarkMode = !isDarkMode;
     setIsDarkMode(newDarkMode);
     localStorage.setItem('darkMode', newDarkMode.toString());
-    
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    
+    if (newDarkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
     toast.success(`${newDarkMode ? 'Dark' : 'Light'} mode enabled`);
   };
 
   const clearCache = async () => {
     try {
-      // Clear admin messages for this user
-      await supabase
-        .from('admin_messages')
-        .delete()
-        .eq('guest_name', username);
-      
-      // Clear private chat messages where user is involved
-      await supabase
-        .from('private_chats')
-        .delete()
-        .or(`sender_name.eq.${username},receiver_name.eq.${username}`);
-      
+      await supabase.from('admin_messages').delete().eq('guest_name', username);
+      await supabase.from('private_chats').delete().or(`sender_name.eq.${username},receiver_name.eq.${username}`);
       toast.success("Chat history cleared successfully");
     } catch (error) {
       console.error('Error clearing cache:', error);
@@ -74,20 +72,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
     }
   };
 
-  const handleAdminLogin = () => {
-    if (adminPassword === 'kvrplobby') {
-      toast.success("Admin access granted");
-      onNavigate('admin');
-      setAdminPassword('');
-      setShowAdminLogin(false);
-    } else {
-      toast.error("Invalid password");
-    }
-  };
-
-  const visitOfficialWebsite = () => {
-    window.open('https://lgsa-tm.com', '_blank');
-  };
+  const visitOfficialWebsite = () => window.open('https://lgsa-tm.com', '_blank');
 
   const handleProfilePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -112,8 +97,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
   const changeTheme = (newTheme: 'blue' | 'purple' | 'green') => {
     setTheme(newTheme);
     localStorage.setItem(`theme_${username}`, newTheme);
-    
-    // Apply theme colors to root
     const root = document.documentElement;
     switch (newTheme) {
       case 'blue':
@@ -129,7 +112,6 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
         root.style.setProperty('--primary-foreground', '0 0% 98%');
         break;
     }
-    
     toast.success(`${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)} theme applied!`);
   };
 
@@ -289,7 +271,31 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
             </Button>
           </CardContent>
         </Card>
+
+        {/* LGSA Lobby link (staff only) */}
+        {isStaff && (
+          <div className="text-center">
+            <button
+              className="story-link text-primary text-sm"
+              onClick={() => setShowAdminDialog(true)}
+              aria-label="Open LGSA Lobby Admin Panel"
+            >
+              lgsalobby
+            </button>
+          </div>
+        )}
       </div>
+
+      <Dialog open={showAdminDialog} onOpenChange={setShowAdminDialog}>
+        <DialogContent className="max-w-4xl h-[80vh] overflow-hidden p-0">
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle>Admin Panel</DialogTitle>
+          </DialogHeader>
+          <div className="h-full overflow-y-auto px-6 pb-6">
+            <AdminPanel skipPassword />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
