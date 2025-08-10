@@ -271,49 +271,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
           </CardContent>
         </Card>
 
-        {/* Admin Access */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              Admin Panel
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {!showAdminLogin ? (
-                <Button 
-                  onClick={() => setShowAdminLogin(true)}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Access Admin Panel
-                </Button>
-              ) : (
-                <div className="space-y-3">
-                  <Input
-                    type="password"
-                    placeholder="Enter admin password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
-                  />
-                  <div className="flex gap-2">
-                    <Button onClick={handleAdminLogin} className="flex-1">
-                      Login
-                    </Button>
-                    <Button 
-                      onClick={() => setShowAdminLogin(false)} 
-                      variant="outline"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Admin Panel hidden - moved to floating button */}
 
         {/* Community */}
         <Card>

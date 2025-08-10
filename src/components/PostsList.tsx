@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import NameWithBadges from "./NameWithBadges";
 import { Heart, User, Calendar, ThumbsDown } from "lucide-react";
 
 interface Post {
@@ -289,7 +290,7 @@ const PostsList: React.FC<PostsListProps> = ({ username }) => {
                 <CardTitle className="text-lg">{post.title}</CardTitle>
                 <Badge variant="outline" className="flex items-center gap-1">
                   <User className="w-3 h-3" />
-                  {post.author_name}
+                  <NameWithBadges username={post.author_name} />
                 </Badge>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">

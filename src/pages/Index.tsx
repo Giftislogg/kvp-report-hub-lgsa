@@ -10,6 +10,7 @@ import NotificationsPage from '@/components/NotificationsPage';
 import SettingsPage from '@/components/SettingsPage';
 import AuthModal from '@/components/AuthModal';
 import { toast } from "sonner";
+import FloatingAdminButton from '@/components/FloatingAdminButton';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -162,6 +163,7 @@ const Index = () => {
         isOpen={showAuthModal} 
         onSubmit={handleAuthSubmit} 
       />
+      {username && <FloatingAdminButton username={username} />}
     </div>
   );
 };

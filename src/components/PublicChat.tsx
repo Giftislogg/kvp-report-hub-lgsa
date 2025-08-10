@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, Trash2, Reply, Heart, Smile, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import UserAvatar from './UserAvatar';
+import NameWithBadges from './NameWithBadges';
 import ChatInput from './ChatInput';
 import { toast } from "sonner";
 
@@ -349,7 +350,7 @@ const PublicChat: React.FC<PublicChatProps> = ({ guestName }) => {
                       
                       {message.sender_name !== guestName && (
                         <div className="font-semibold text-sm text-blue-600 mb-1">
-                          {message.sender_name}
+                          <NameWithBadges username={message.sender_name} />
                         </div>
                       )}
                       
