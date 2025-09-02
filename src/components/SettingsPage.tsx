@@ -23,6 +23,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
   const [theme, setTheme] = useState<'blue' | 'purple' | 'green'>('blue');
   const [isStaff, setIsStaff] = useState(false);
   const [showAdminDialog, setShowAdminDialog] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
 
   useEffect(() => {
     const darkMode = localStorage.getItem('darkMode') === 'true';
@@ -113,6 +115,17 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
         break;
     }
     toast.success(`${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)} theme applied!`);
+  };
+
+  const handleAdminAccess = () => {
+    if (adminPassword === 'kvrplobby') {
+      setShowAdminPassword(false);
+      setShowAdminDialog(true);
+      setAdminPassword('');
+    } else {
+      toast.error('Incorrect password');
+      setAdminPassword('');
+    }
   };
 
   return (
@@ -272,19 +285,47 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ username, onNavigate, onLog
           </CardContent>
         </Card>
 
-        {/* LGSA Lobby link (staff only) */}
-        {isStaff && (
-          <div className="text-center">
-            <button
-              className="story-link text-primary text-sm"
-              onClick={() => setShowAdminDialog(true)}
-              aria-label="Open LGSA Lobby Admin Panel"
-            >
-              lgsalobby
-            </button>
-          </div>
-        )}
+        {/* LGSA Lobby Access - visible to all */}
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Admin Access</h3>
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => setShowAdminPassword(true)}
+          >
+            lgsalobby
+          </Button>
+        </Card>
       </div>
+
+      {/* Admin Password Dialog */}
+      <Dialog open={showAdminPassword} onOpenChange={setShowAdminPassword}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Password"
+              value={adminPassword}
+              onChange={(e) => setAdminPassword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAdminAccess()}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => {
+                setShowAdminPassword(false);
+                setAdminPassword('');
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleAdminAccess}>
+                Enter
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showAdminDialog} onOpenChange={setShowAdminDialog}>
         <DialogContent className="max-w-4xl h-[80vh] overflow-hidden p-0">

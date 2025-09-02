@@ -20,6 +20,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ username, onPostCreated, onCl
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,10 +48,12 @@ const PostCreator: React.FC<PostCreatorProps> = ({ username, onPostCreated, onCl
   const uploadImage = async (): Promise<string | null> => {
     if (!selectedImage) return null;
 
+    setUploadProgress(10);
     const fileExt = selectedImage.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `posts/${fileName}`;
 
+    setUploadProgress(30);
     const { error: uploadError } = await supabase.storage
       .from('post-images')
       .upload(filePath, selectedImage);
@@ -58,13 +61,16 @@ const PostCreator: React.FC<PostCreatorProps> = ({ username, onPostCreated, onCl
     if (uploadError) {
       console.error('Error uploading image:', uploadError);
       toast.error("Failed to upload image");
+      setUploadProgress(0);
       return null;
     }
 
+    setUploadProgress(70);
     const { data } = supabase.storage
       .from('post-images')
       .getPublicUrl(filePath);
 
+    setUploadProgress(100);
     return data.publicUrl;
   };
 
@@ -114,6 +120,7 @@ const PostCreator: React.FC<PostCreatorProps> = ({ username, onPostCreated, onCl
       toast.error("An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(0);
     }
   };
 
@@ -209,7 +216,9 @@ const PostCreator: React.FC<PostCreatorProps> = ({ username, onPostCreated, onCl
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create Post'}
+              {isSubmitting ? (
+                selectedImage && uploadProgress > 0 ? `Uploading... ${uploadProgress}%` : 'Creating...'
+              ) : 'Create Post'}
             </Button>
           </div>
         </form>

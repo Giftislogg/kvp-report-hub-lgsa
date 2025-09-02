@@ -151,17 +151,26 @@ const ModernPublicChat: React.FC<ModernPublicChatProps> = ({ guestName }) => {
       if (voiceBlob) {
         const fileName = `voice_${Date.now()}.webm`;
         
-        const { error: uploadError } = await supabase.storage
-          .from('post-images')
-          .upload(fileName, voiceBlob);
+        try {
+          const { error: uploadError } = await supabase.storage
+            .from('post-images')
+            .upload(fileName, voiceBlob);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error('Voice upload error:', uploadError);
+            throw new Error('Failed to upload voice message');
+          }
 
-        const { data } = supabase.storage
-          .from('post-images')
-          .getPublicUrl(fileName);
-        
-        voiceUrl = data.publicUrl;
+          const { data } = supabase.storage
+            .from('post-images')
+            .getPublicUrl(fileName);
+          
+          voiceUrl = data.publicUrl;
+        } catch (voiceError) {
+          console.error('Voice processing error:', voiceError);
+          toast.error('Failed to process voice message');
+          return;
+        }
       }
 
       // Create message with content
@@ -344,7 +353,12 @@ const ModernPublicChat: React.FC<ModernPublicChatProps> = ({ guestName }) => {
             <div key={msg.id} className="group animate-fade-in">
               <div className={`flex gap-3 ${msg.sender_name === guestName ? 'justify-end' : 'justify-start'}`}>
                 {msg.sender_name !== guestName && (
-                  <UserAvatar username={msg.sender_name} size="sm" className="mt-1" />
+                  <div 
+                    className="cursor-pointer hover:scale-105 transition-transform"
+                    onClick={() => toast.info(`${msg.sender_name}'s profile`)}
+                  >
+                    <UserAvatar username={msg.sender_name} size="sm" className="mt-1" />
+                  </div>
                 )}
                 
                 <div className={`max-w-xs sm:max-w-sm md:max-w-md relative ${
@@ -448,7 +462,12 @@ const ModernPublicChat: React.FC<ModernPublicChatProps> = ({ guestName }) => {
                 </div>
                 
                 {msg.sender_name === guestName && (
-                  <UserAvatar username={msg.sender_name} size="sm" className="mt-1" />
+                  <div 
+                    className="cursor-pointer hover:scale-105 transition-transform"
+                    onClick={() => toast.info(`${msg.sender_name}'s profile`)}
+                  >
+                    <UserAvatar username={msg.sender_name} size="sm" className="mt-1" />
+                  </div>
                 )}
               </div>
             </div>
