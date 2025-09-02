@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import UserAvatar from './UserAvatar';
+import NameWithBadges from './NameWithBadges';
 import { toast } from "sonner";
 
 interface Message {
@@ -383,8 +384,8 @@ const ModernPublicChat: React.FC<ModernPublicChatProps> = ({ guestName }) => {
                       : 'bg-white text-gray-800 border rounded-bl-md'
                   }`}>
                     {msg.sender_name !== guestName && (
-                      <div className="font-semibold text-sm text-blue-600 mb-1">
-                        {msg.sender_name}
+                      <div className="mb-1">
+                        <NameWithBadges username={msg.sender_name} className="font-semibold text-sm text-blue-600" />
                       </div>
                     )}
                     

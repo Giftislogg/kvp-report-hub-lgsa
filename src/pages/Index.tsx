@@ -156,6 +156,7 @@ const Index = () => {
           currentPage={currentPage} 
           onNavigate={handleNavigate} 
           isStaff={isStaff}
+          username={username || undefined}
         />
       )}
 
