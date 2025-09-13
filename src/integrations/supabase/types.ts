@@ -318,6 +318,7 @@ export type Database = {
           bio: string | null
           created_at: string
           id: string
+          last_active: string | null
           profile_picture_url: string | null
           updated_at: string
           username: string
@@ -326,6 +327,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           id?: string
+          last_active?: string | null
           profile_picture_url?: string | null
           updated_at?: string
           username: string
@@ -334,6 +336,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           id?: string
+          last_active?: string | null
           profile_picture_url?: string | null
           updated_at?: string
           username?: string
@@ -476,6 +479,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_missing_profiles: {
         Args: Record<PropertyKey, never>
         Returns: undefined
