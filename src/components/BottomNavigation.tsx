@@ -24,13 +24,22 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
 
   useEffect(() => {
     const checkStaffStatus = async () => {
-      if (!username) return;
-      const { data } = await supabase
-        .from("user_badges")
-        .select("staff")
-        .eq("user_name", username)
-        .maybeSingle();
-      setIsUserStaff(!!data?.staff);
+      if (!username) {
+        setIsUserStaff(false);
+        return;
+      }
+      
+      try {
+        const { data } = await supabase
+          .from("user_badges")
+          .select("staff")
+          .eq("user_name", username)
+          .maybeSingle();
+        setIsUserStaff(!!data?.staff);
+      } catch (error) {
+        console.error('Error checking staff status:', error);
+        setIsUserStaff(false);
+      }
     };
     checkStaffStatus();
   }, [username]);
