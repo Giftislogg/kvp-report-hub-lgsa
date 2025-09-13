@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Chrome, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ModernAuthModalProps {
   isOpen: boolean;
@@ -51,11 +52,25 @@ const ModernAuthModal: React.FC<ModernAuthModalProps> = ({
   };
 
   const handleGoogleAuth = async () => {
-    if (onGoogleAuth) {
-      onGoogleAuth();
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) {
+        toast.error("Google authentication failed");
+        console.error('Google auth error:', error);
+        return;
+      }
+      
+      // After successful Google auth, redirect to username setup
       setAuthType('username');
-    } else {
+    } catch (error) {
       toast.error("Google authentication not available");
+      console.error('Google auth error:', error);
     }
   };
 

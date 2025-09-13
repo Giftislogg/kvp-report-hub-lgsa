@@ -45,75 +45,24 @@ interface ProjectsSectionProps {
 
 const ProjectsSection: React.FC<ProjectsSectionProps> = ({ onClose }) => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 h-full">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-          Support Our Projects
+          Loot Vault Hub - Support Our Network
         </h2>
         <p className="text-gray-600 mt-2">
-          Discover other amazing Lovable projects and help support their development
+          Explore our main project and help support the entire network
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {projects.map((project) => (
-          <Card key={project.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
-            <div className="aspect-video bg-gray-100 overflow-hidden">
-              <img 
-                src={project.image} 
-                alt={project.title}
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-              />
-            </div>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{project.title}</CardTitle>
-                <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
-                  {project.category}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                {project.description}
-              </p>
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => window.open(project.url, '_blank')}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Visit
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                >
-                  <Heart className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+        <iframe
+          src="https://loot-vault-hub.lovable.app/"
+          className="w-full h-full border-0"
+          title="Loot Vault Hub"
+          allow="clipboard-read; clipboard-write"
+        />
       </div>
-
-      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
-        <CardContent className="p-6 text-center">
-          <h3 className="text-xl font-bold text-purple-700 mb-2">Want to Support Us?</h3>
-          <p className="text-purple-600 mb-4">
-            Your donations help us maintain servers, develop new features, and create amazing experiences for the community.
-          </p>
-          <Button 
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-            onClick={() => window.open('https://ko-fi.com/kvrp', '_blank')}
-          >
-            <Heart className="w-4 h-4 mr-2" />
-            Donate Now
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 };
