@@ -8,7 +8,8 @@ import AdminMessages from '@/components/AdminMessages';
 import AdminPanel from '@/components/AdminPanel';
 import NotificationsPage from '@/components/NotificationsPage';
 import SettingsPage from '@/components/SettingsPage';
-import AuthModal from '@/components/AuthModal';
+import ModernAuthModal from '@/components/ModernAuthModal';
+import ProjectsSection from '@/components/ProjectsSection';
 import { toast } from "sonner";
 import FloatingAdminButton from '@/components/FloatingAdminButton';
 
@@ -28,8 +29,29 @@ const Index = () => {
     }
   }, [username]);
 
-  const handleAuthSubmit = async (inputUsername: string, password: string, isNewUser: boolean) => {
+  const handleAuthSubmit = async (inputUsername: string, password?: string, isNewUser?: boolean, isGoogle?: boolean) => {
     try {
+      // Handle guest or Google login (no password required)
+      if (!password || isGoogle) {
+        // Check if username already exists for guest users
+        const existingUser = localStorage.getItem(`user_${inputUsername}`);
+        if (existingUser && !isGoogle) {
+          toast.error("Username already exists. Please choose a different one.");
+          return;
+        }
+
+        localStorage.setItem('username', inputUsername);
+        setUsername(inputUsername);
+        setShowAuthModal(false);
+        toast.success(isGoogle ? "Signed in with Google successfully!" : "Logged in as guest successfully!");
+        
+        if (pendingPage) {
+          setCurrentPage(pendingPage);
+          setPendingPage(null);
+        }
+        return;
+      }
+
       if (isNewUser) {
         // Check if username already exists
         const existingUser = localStorage.getItem(`user_${inputUsername}`);
@@ -139,6 +161,8 @@ const Index = () => {
         return <SettingsPage username={username!} onNavigate={handleNavigate} onLogout={handleLogout} />;
       case 'admin':
         return <AdminPanel />;
+      case 'donations':
+        return <ProjectsSection />;
       default:
         return <HomePage onNavigate={handleNavigate} username={username || undefined} currentPage={currentPage} />;
     }
@@ -160,9 +184,13 @@ const Index = () => {
         />
       )}
 
-      <AuthModal 
+      <ModernAuthModal 
         isOpen={showAuthModal} 
-        onSubmit={handleAuthSubmit} 
+        onSubmit={handleAuthSubmit}
+        onGoogleAuth={() => {
+          // Google auth implementation would go here
+          toast.info("Google authentication will be available soon!");
+        }}
       />
       {username && <FloatingAdminButton username={username} />}
     </div>

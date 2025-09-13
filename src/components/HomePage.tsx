@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Menu, X } from "lucide-react";
+import { Menu, X, MessageCircle, PenTool } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import SideNavigation from './SideNavigation';
 import AnnouncementsSection from './AnnouncementsSection';
@@ -127,6 +127,25 @@ const HomePage: React.FC<HomePageProps> = ({
                   </div>
                 </div>
 
+                {/* Quick Actions Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onNavigate('public-chat')}>
+                    <CardContent className="p-4 text-center">
+                      <MessageCircle className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                      <h3 className="font-semibold text-sm">Join Chat</h3>
+                      <p className="text-xs text-gray-600">Connect with players</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onNavigate('posts')}>
+                    <CardContent className="p-4 text-center">
+                      <PenTool className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+                      <h3 className="font-semibold text-sm">Community Posts</h3>
+                      <p className="text-xs text-gray-600">Share your stories</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
                 {/* Community Section */}
                 <Card className="mb-4">
                   <CardHeader className="pb-3">
@@ -136,13 +155,23 @@ const HomePage: React.FC<HomePageProps> = ({
                     <p className="text-gray-600 mb-3 text-sm">
                       Connect with fellow players, share your experiences, and stay updated with the latest news from KVRP.
                     </p>
-                    <Button 
-                      onClick={() => window.open('https://lgsa-tm.com', '_blank')}
-                      className="bg-green-600 hover:bg-green-700 text-sm"
-                      size="sm"
-                    >
-                      Visit LGSA-TM.com
-                    </Button>
+                    <div className="flex gap-2 justify-center">
+                      <Button 
+                        onClick={() => window.open('https://lgsa-tm.com', '_blank')}
+                        className="bg-green-600 hover:bg-green-700 text-sm"
+                        size="sm"
+                      >
+                        Visit LGSA-TM.com
+                      </Button>
+                      <Button 
+                        onClick={() => window.open('https://discord.gg/kvrp', '_blank')}
+                        variant="outline"
+                        size="sm"
+                        className="text-sm"
+                      >
+                        Discord
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 
