@@ -60,7 +60,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
           <Button
             variant="ghost"
             onClick={() => {
-              const event = new CustomEvent('toggle-mobile-menu');
+              const event = new CustomEvent('open-side-navigation');
               window.dispatchEvent(event);
             }}
             className={`flex flex-col items-center justify-center min-h-[60px] flex-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50/80 rounded-xl transition-all duration-200 hover:scale-105`}

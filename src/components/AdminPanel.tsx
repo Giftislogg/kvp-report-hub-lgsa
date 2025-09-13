@@ -88,6 +88,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [inactiveUsers, setInactiveUsers] = useState<any[]>([]);
   const [deleteAccountUsername, setDeleteAccountUsername] = useState('');
+  const [adminAccessUsername, setAdminAccessUsername] = useState('');
+  const [adminAccessAction, setAdminAccessAction] = useState<'enable' | 'disable'>('enable');
 
   useEffect(() => {
     fetchAllData();
@@ -686,6 +688,55 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
     }
   };
 
+  // Admin access control function
+  const toggleAdminAccess = async () => {
+    if (!adminAccessUsername.trim()) {
+      toast.error("Please enter a username");
+      return;
+    }
+
+    const username = adminAccessUsername.trim();
+    const enableAccess = adminAccessAction === 'enable';
+
+    try {
+      // Check if user badge entry exists
+      const { data: existingBadge } = await supabase
+        .from('user_badges')
+        .select('*')
+        .eq('user_name', username)
+        .maybeSingle();
+
+      if (existingBadge) {
+        // Update existing badge
+        const { error } = await supabase
+          .from('user_badges')
+          .update({ staff: enableAccess })
+          .eq('user_name', username);
+
+        if (error) throw error;
+      } else {
+        // Create new badge entry
+        const { error } = await supabase
+          .from('user_badges')
+          .insert({
+            user_name: username,
+            staff: enableAccess,
+            verified: false,
+            bot: false
+          });
+
+        if (error) throw error;
+      }
+
+      toast.success(`Admin access ${enableAccess ? 'enabled' : 'disabled'} for ${username}`);
+      setAdminAccessUsername('');
+      fetchUserSuggestions(); // Refresh suggestions
+    } catch (error) {
+      console.error('Error toggling admin access:', error);
+      toast.error("Failed to update admin access");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6 pb-20">
@@ -767,11 +818,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
             </Button>
             
             <Button 
-              onClick={() => setSelectedTab("roles")}
-              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white border-0 shadow-lg"
+              onClick={() => { 
+                setSelectedTab("admin-access");
+                setTimeout(() => {
+                  const element = document.getElementById('admin-admin-access');
+                  if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white border-0 shadow-lg"
             >
               <Users className="w-6 h-6" />
-              <span className="font-semibold">Users & Roles</span>
+              <span className="font-semibold">Admin Access</span>
             </Button>
 
             <Button 
@@ -783,7 +840,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
             </Button>
             
             <Button 
-              onClick={() => setSelectedTab("inactive-users")}
+              onClick={() => { 
+                setSelectedTab("inactive-users");
+                fetchInactiveUsers(); // Auto-fetch when clicking
+                setTimeout(() => {
+                  const element = document.getElementById('admin-inactive-users');
+                  if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }}
               className="h-20 flex flex-col gap-2 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white border-0 shadow-lg"
             >
               <Users className="w-6 h-6" />
@@ -893,8 +957,49 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
               </div>
             )}
 
+            {selectedTab === "admin-access" && (
+              <div id="admin-admin-access" className="space-y-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Admin Panel Access Control</h3>
+                
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Control Admin Panel Access</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex gap-4">
+                      <Input
+                        value={adminAccessUsername}
+                        onChange={(e) => setAdminAccessUsername(e.target.value)}
+                        placeholder="Username"
+                        className="flex-1"
+                      />
+                      <Select value={adminAccessAction} onValueChange={(value) => setAdminAccessAction(value as 'enable' | 'disable')}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="enable">Enable</SelectItem>
+                          <SelectItem value="disable">Disable</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        onClick={toggleAdminAccess}
+                        className="bg-blue-600 hover:bg-blue-700"
+                        disabled={!adminAccessUsername.trim()}
+                      >
+                        {adminAccessAction === 'enable' ? 'Enable' : 'Disable'} Admin Access
+                      </Button>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Control who can access the admin panel. Only users with staff badges can access admin features.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             {selectedTab === "inactive-users" && (
-              <div className="space-y-6">
+              <div id="admin-inactive-users" className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-2xl font-bold text-gray-900">Inactive Users (24+ hours)</h3>
                   <Button 
@@ -943,7 +1048,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
             )}
 
             {selectedTab === "delete-accounts" && (
-              <div className="space-y-6">
+              <div id="admin-delete-accounts" className="space-y-6">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Delete User Account</h3>
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                   <div className="flex items-center">
@@ -982,7 +1087,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
               </div>
             )}
 
-          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+          <Tabs value={selectedTab} onValueChange={(value) => {
+            setSelectedTab(value);
+            // Auto scroll to content on mobile
+            setTimeout(() => {
+              const element = document.getElementById(`admin-${value}`);
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }, 100);
+          }} className="w-full">
             <TabsList className="hidden">
               <TabsTrigger value="reports">Reports</TabsTrigger>
               <TabsTrigger value="messages">Messages</TabsTrigger>
