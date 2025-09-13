@@ -10,7 +10,6 @@ import AdminMessagesChat from './AdminMessagesChat';
 import FriendChat from './FriendChat';
 import MessagesAndFriends from './MessagesAndFriends';
 import ReportsCenter from './ReportsCenter';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface SideNavigationProps {
   activeSection: string;
@@ -70,9 +69,8 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
   const [reports, setReports] = useState<Report[]>([]);
   const [adminMessages, setAdminMessages] = useState<AdminMessage[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<string | null>(null);
-  const [showMessagesAndFriends, setShowMessagesAndFriends] = useState(false);
-  const [showReportsCenter, setShowReportsCenter] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
+const [showMessagesAndFriends, setShowMessagesAndFriends] = useState(false);
+const [showReportsCenter, setShowReportsCenter] = useState(false);
 
 const navItems = [
   { id: 'home', label: 'Home', icon: Home },
@@ -93,17 +91,6 @@ const navItems = [
     } else {
       setLoading(false);
     }
-
-    // Listen for mobile menu toggle event
-    const handleOpenSideNavigation = () => {
-      setIsOpen(true);
-    };
-
-    window.addEventListener('open-side-navigation', handleOpenSideNavigation);
-
-    return () => {
-      window.removeEventListener('open-side-navigation', handleOpenSideNavigation);
-    };
   }, [username]);
 
   const fetchReports = async () => {
@@ -248,7 +235,6 @@ const handleSectionChange = (section: string) => {
     return;
   }
   onSectionChange(section);
-  setIsOpen(false); // Close mobile menu
   if (onClose) onClose();
 };
 
@@ -392,74 +378,12 @@ const handleSectionChange = (section: string) => {
     friend.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (showMessagesAndFriends) {
-    return (
-      <MessagesAndFriends 
-        username={username} 
-        onBack={() => setShowMessagesAndFriends(false)} 
-      />
-    );
-  }
-
-  if (showReportsCenter) {
-    return (
-      <ReportsCenter 
-        username={username} 
-        onBack={() => setShowReportsCenter(false)} 
-      />
-    );
-  }
-
-  const renderNavigationContent = () => {
-    if (!username) {
-      return (
-        <div className="h-full overflow-y-auto bg-white p-4 space-y-4">
-          {/* Main Navigation */}
-          <div className="space-y-2">
-            {navItems.slice(0, 4).map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
-              
-              return (
-                <Button
-                  key={item.id}
-                  variant={isActive ? "default" : "ghost"}
-                  onClick={() => handleSectionChange(item.id)}
-                  className={`w-full justify-start gap-3 relative ${
-                    isActive 
-                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                  {item.isNew && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                      NEW
-                    </span>
-                  )}
-                  {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
-                </Button>
-              );
-            })}
-          </div>
-
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">Login Required</h3>
-              <p className="text-gray-500">Please login to access community features and connect with friends.</p>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-
+  if (!username) {
     return (
       <div className="h-full overflow-y-auto bg-white p-4 space-y-4">
         {/* Main Navigation */}
         <div className="space-y-2">
-          {navItems.map((item) => {
+          {navItems.slice(0, 4).map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
             
@@ -487,212 +411,259 @@ const handleSectionChange = (section: string) => {
           })}
         </div>
 
-        {/* Reports & Admin Messages */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Your Reports & Admin Messages ({reports.length + adminMessages.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {reports.length === 0 && adminMessages.length === 0 ? (
-              <div className="text-center py-4">
-                <MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">No reports or messages yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {reports.map((report) => (
-                  <div key={report.id} className="p-2 rounded-lg bg-blue-50 border">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-gray-900 truncate">
-                          Report: {report.type}
-                        </p>
-                        <p className="text-xs text-gray-500 capitalize">
-                          Status: {report.status}
-                        </p>
-                      </div>
-                      <div className={`w-2 h-2 rounded-full ${
-                        report.status === 'resolved' ? 'bg-green-500' : 
-                        report.status === 'in_progress' ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}></div>
-                    </div>
-                  </div>
-                ))}
-                {adminMessages.map((message) => (
-                  <AdminMessagesChat key={message.id} guestName={username!} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Friend Requests */}
-        {friendRequests.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <UserPlus className="w-4 h-4" />
-                Friend Requests ({friendRequests.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {friendRequests.map((request) => (
-                  <div key={request.id} className="flex items-center justify-between p-2 rounded-lg bg-blue-50 border">
-                    <div className="flex items-center gap-2">
-                      <UserAvatar username={request.from_user} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-gray-900 truncate">{request.from_user}</p>
-                        <p className="text-xs text-gray-500">Friend request</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleAcceptFriend(request.id, request.from_user)}
-                        className="bg-green-600 hover:bg-green-700 h-6 w-6 p-0"
-                      >
-                        <Check className="w-3 h-3" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleRejectFriend(request.id, request.from_user)}
-                        className="h-6 w-6 p-0"
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Search Friends */}
-        {friends.length > 0 && (
-          <Card>
-            <CardContent className="p-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
-                <Input
-                  placeholder="Search friends..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8 h-8 text-sm"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Friends List */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Your Friends ({filteredFriends.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {filteredFriends.length === 0 ? (
-              <div className="text-center py-4">
-                <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">
-                  {searchTerm ? 'No friends found matching your search.' : 'No friends yet.'}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {filteredFriends.map((friend) => (
-                  <div key={friend.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <div className="relative">
-                        <UserAvatar username={friend.name} size="sm" />
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 ${getStatusColor(friend.status)} rounded-full border border-white`}></div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-xs font-medium text-gray-900 truncate">{friend.name}</h3>
-                        <p className="text-xs text-gray-500 capitalize">
-                          {friend.status} • {friend.lastSeen}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button size="sm" variant="outline" className="h-6 px-2 text-xs">
-                        <MessageSquare className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                        <MoreVertical className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Suggested Friends Section */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <UserPlus className="w-4 h-4" />
-              Suggested Friends
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            {loading ? (
-              <div className="text-sm text-gray-500">Loading users...</div>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {registeredUsers.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <UserAvatar username={user.author_name} size="sm" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium truncate">{user.author_name}</p>
-                        <p className="text-xs text-gray-500">Platform Member</p>
-                      </div>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-xs px-2 py-1 h-6"
-                      onClick={() => handleAddFriend(user.author_name)}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                ))}
-                {registeredUsers.length === 0 && (
-                  <div className="text-xs text-gray-500 text-center py-4">
-                    No registered users found
-                  </div>
-                )}
-              </div>
-            )}
+          <CardContent className="p-8 text-center">
+            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">Login Required</h3>
+            <p className="text-gray-500">Please login to access community features and connect with friends.</p>
           </CardContent>
         </Card>
       </div>
     );
-  };
+  }
+
+if (showMessagesAndFriends) {
+  return (
+    <MessagesAndFriends 
+      username={username} 
+      onBack={() => setShowMessagesAndFriends(false)} 
+    />
+  );
+}
+
+if (showReportsCenter) {
+  return (
+    <ReportsCenter 
+      username={username} 
+      onBack={() => setShowReportsCenter(false)} 
+    />
+  );
+}
 
   return (
-    <>
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="left" className="w-80 p-0">
-          {renderNavigationContent()}
-        </SheetContent>
-      </Sheet>
-      <div className="hidden md:block">
-        {renderNavigationContent()}
+    <div className="h-full overflow-y-auto bg-white p-4 space-y-4">
+      {/* Main Navigation */}
+      <div className="space-y-2">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeSection === item.id;
+          
+          return (
+            <Button
+              key={item.id}
+              variant={isActive ? "default" : "ghost"}
+              onClick={() => handleSectionChange(item.id)}
+              className={`w-full justify-start gap-3 relative ${
+                isActive 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {item.label}
+              {item.isNew && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                  NEW
+                </span>
+              )}
+              {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+            </Button>
+          );
+        })}
       </div>
-    </>
+
+      {/* Reports & Admin Messages */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Your Reports & Admin Messages ({reports.length + adminMessages.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {reports.length === 0 && adminMessages.length === 0 ? (
+            <div className="text-center py-4">
+              <MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-xs text-gray-500">No reports or messages yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {reports.map((report) => (
+                <div key={report.id} className="p-2 rounded-lg bg-blue-50 border">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-900 truncate">
+                        Report: {report.type}
+                      </p>
+                      <p className="text-xs text-gray-500 capitalize">
+                        Status: {report.status}
+                      </p>
+                    </div>
+                    <div className={`w-2 h-2 rounded-full ${
+                      report.status === 'resolved' ? 'bg-green-500' : 
+                      report.status === 'in_progress' ? 'bg-yellow-500' : 'bg-red-500'
+                    }`}></div>
+                  </div>
+                </div>
+              ))}
+              {adminMessages.map((message) => (
+                <AdminMessagesChat key={message.id} guestName={username!} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Friend Requests */}
+      {friendRequests.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              Friend Requests ({friendRequests.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {friendRequests.map((request) => (
+                <div key={request.id} className="flex items-center justify-between p-2 rounded-lg bg-blue-50 border">
+                  <div className="flex items-center gap-2">
+                    <UserAvatar username={request.from_user} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-900 truncate">{request.from_user}</p>
+                      <p className="text-xs text-gray-500">Friend request</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleAcceptFriend(request.id, request.from_user)}
+                      className="bg-green-600 hover:bg-green-700 h-6 w-6 p-0"
+                    >
+                      <Check className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleRejectFriend(request.id, request.from_user)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Search Friends */}
+      {friends.length > 0 && (
+        <Card>
+          <CardContent className="p-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
+              <Input
+                placeholder="Search friends..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Friends List */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Your Friends ({filteredFriends.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {filteredFriends.length === 0 ? (
+            <div className="text-center py-4">
+              <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-xs text-gray-500">
+                {searchTerm ? 'No friends found matching your search.' : 'No friends yet.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {filteredFriends.map((friend) => (
+                <div key={friend.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="relative">
+                      <UserAvatar username={friend.name} size="sm" />
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 ${getStatusColor(friend.status)} rounded-full border border-white`}></div>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-xs font-medium text-gray-900 truncate">{friend.name}</h3>
+                      <p className="text-xs text-gray-500 capitalize">
+                        {friend.status} • {friend.lastSeen}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="outline" className="h-6 px-2 text-xs">
+                      <MessageSquare className="w-3 h-3" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                      <MoreVertical className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Suggested Friends Section */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <UserPlus className="w-4 h-4" />
+            Suggested Friends
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {loading ? (
+            <div className="text-sm text-gray-500">Loading users...</div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {registeredUsers.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <UserAvatar username={user.author_name} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium truncate">{user.author_name}</p>
+                      <p className="text-xs text-gray-500">Platform Member</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="text-xs px-2 py-1 h-6"
+                    onClick={() => handleAddFriend(user.author_name)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ))}
+              {registeredUsers.length === 0 && (
+                <div className="text-xs text-gray-500 text-center py-4">
+                  No registered users found
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

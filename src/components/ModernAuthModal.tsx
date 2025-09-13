@@ -26,11 +26,11 @@ const ModernAuthModal: React.FC<ModernAuthModalProps> = ({
 
   const handleGuestSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      toast.error("Please enter both username and password");
+    if (!username.trim()) {
+      toast.error("Please enter your roleplay name");
       return;
     }
-    onSubmit(username.trim(), password.trim(), isNewUser);
+    onSubmit(username.trim());
   };
 
   const handleAccountSubmit = (e: React.FormEvent) => {
@@ -100,7 +100,15 @@ const ModernAuthModal: React.FC<ModernAuthModalProps> = ({
               <CardContent className="p-4 text-center">
                 <User className="w-8 h-8 mx-auto mb-2 text-blue-600" />
                 <h3 className="font-semibold mb-1">Continue as Guest</h3>
-                <p className="text-sm text-gray-600">Create a guest account with password</p>
+                <p className="text-sm text-gray-600">Join with just your roleplay name</p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleGoogleAuth}>
+              <CardContent className="p-4 text-center">
+                <Chrome className="w-8 h-8 mx-auto mb-2 text-red-500" />
+                <h3 className="font-semibold mb-1">Sign in with Google</h3>
+                <p className="text-sm text-gray-600">Quick and secure authentication</p>
               </CardContent>
             </Card>
 
@@ -119,12 +127,8 @@ const ModernAuthModal: React.FC<ModernAuthModalProps> = ({
         {authType === 'guest' && (
           <form onSubmit={handleGuestSubmit} className="space-y-4">
             <div className="text-center mb-4">
-              <h3 className="font-semibold text-lg">
-                {isNewUser ? 'Create Guest Account' : 'Login to Guest Account'}
-              </h3>
-              <p className="text-sm text-gray-600">
-                {isNewUser ? 'Create your guest account with a password' : 'Login with your guest account'}
-              </p>
+              <h3 className="font-semibold text-lg">Enter Your Roleplay Name</h3>
+              <p className="text-sm text-gray-600">This is how others will see you in the community</p>
             </div>
             <div>
               <Label htmlFor="guestName">Roleplay Name</Label>
@@ -136,33 +140,12 @@ const ModernAuthModal: React.FC<ModernAuthModalProps> = ({
                 required
               />
             </div>
-            <div>
-              <Label htmlFor="guestPassword">Password</Label>
-              <Input
-                id="guestPassword"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={isNewUser ? "Create a password" : "Enter your password"}
-                required
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setIsNewUser(!isNewUser)}
-                className="text-sm"
-              >
-                {isNewUser ? 'Already have a guest account?' : 'Need to create a guest account?'}
-              </Button>
-            </div>
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={resetModal} className="flex-1">
                 Back
               </Button>
               <Button type="submit" className="flex-1">
-                {isNewUser ? 'Create Account' : 'Login'}
+                Continue
               </Button>
             </div>
           </form>

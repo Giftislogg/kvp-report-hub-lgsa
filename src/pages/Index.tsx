@@ -30,18 +30,6 @@ const Index = () => {
       // Update last_active for guest accounts
       updateLastActive(savedUsername);
     }
-
-    // Listen for mobile menu toggle event
-    const handleMobileMenuToggle = () => {
-      const event = new CustomEvent('open-side-navigation');
-      window.dispatchEvent(event);
-    };
-
-    window.addEventListener('toggle-mobile-menu', handleMobileMenuToggle);
-
-    return () => {
-      window.removeEventListener('toggle-mobile-menu', handleMobileMenuToggle);
-    };
   }, [username]);
 
   // Function to update last_active in Supabase for guest tracking
@@ -64,11 +52,11 @@ const Index = () => {
 
   const handleAuthSubmit = async (inputUsername: string, password?: string, isNewUser?: boolean, isGoogle?: boolean) => {
     try {
-      // Handle Google login (no password required)
-      if (isGoogle && !password) {
-        // Check if username already exists for Google users
+      // Handle guest or Google login (no password required)
+      if (!password || isGoogle) {
+        // Check if username already exists for guest users
         const existingUser = localStorage.getItem(`user_${inputUsername}`);
-        if (existingUser) {
+        if (existingUser && !isGoogle) {
           toast.error("Username already exists. Please choose a different one.");
           return;
         }
@@ -77,21 +65,15 @@ const Index = () => {
         setUsername(inputUsername);
         setShowAuthModal(false);
         
-        // Update last_active for Google accounts
+        // Update last_active for guest accounts
         await updateLastActive(inputUsername);
         
-        toast.success("Signed in with Google successfully!");
+        toast.success(isGoogle ? "Signed in with Google successfully!" : "Logged in as guest successfully!");
         
         if (pendingPage) {
           setCurrentPage(pendingPage);
           setPendingPage(null);
         }
-        return;
-      }
-
-      // All non-Google authentication now requires a password
-      if (!password?.trim()) {
-        toast.error("Password is required");
         return;
       }
 
@@ -129,10 +111,6 @@ const Index = () => {
         
         setUsername(inputUsername);
         setShowAuthModal(false);
-        
-        // Update last_active for the new account
-        await updateLastActive(inputUsername);
-        
         toast.success("Account created successfully!");
       } else {
         // Verify existing user
@@ -143,10 +121,6 @@ const Index = () => {
             localStorage.setItem('username', inputUsername);
             setUsername(inputUsername);
             setShowAuthModal(false);
-            
-            // Update last_active for returning user
-            await updateLastActive(inputUsername);
-            
             toast.success("Logged in successfully!");
           } else {
             toast.error("Invalid password");
