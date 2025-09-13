@@ -12,6 +12,7 @@ import ModernAuthModal from '@/components/ModernAuthModal';
 import ProjectsSection from '@/components/ProjectsSection';
 import { toast } from "sonner";
 import FloatingAdminButton from '@/components/FloatingAdminButton';
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -21,13 +22,33 @@ const Index = () => {
   const [navigationData, setNavigationData] = useState<any>(null);
   const [isStaff, setIsStaff] = useState<boolean>(false);
 
-  // Load user data from localStorage on mount
+  // Load user data from localStorage on mount and update last_active
   useEffect(() => {
     const savedUsername = localStorage.getItem('username');
     if (savedUsername) {
       setUsername(savedUsername);
+      // Update last_active for guest accounts
+      updateLastActive(savedUsername);
     }
   }, [username]);
+
+  // Function to update last_active in Supabase for guest tracking
+  const updateLastActive = async (username: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ 
+          username, 
+          last_active: new Date().toISOString() 
+        }, { onConflict: 'username' });
+      
+      if (error) {
+        console.log('Note: Could not update last_active for guest account');
+      }
+    } catch (error) {
+      console.log('Note: Could not update last_active for guest account');
+    }
+  };
 
   const handleAuthSubmit = async (inputUsername: string, password?: string, isNewUser?: boolean, isGoogle?: boolean) => {
     try {
@@ -43,6 +64,10 @@ const Index = () => {
         localStorage.setItem('username', inputUsername);
         setUsername(inputUsername);
         setShowAuthModal(false);
+        
+        // Update last_active for guest accounts
+        await updateLastActive(inputUsername);
+        
         toast.success(isGoogle ? "Signed in with Google successfully!" : "Logged in as guest successfully!");
         
         if (pendingPage) {
