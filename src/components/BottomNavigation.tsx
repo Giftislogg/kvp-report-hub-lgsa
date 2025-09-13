@@ -59,7 +59,10 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
           {/* Menu button to open side navigation drawer */}
           <Button
             variant="ghost"
-            onClick={() => (window as any).dispatchEvent(new Event('open-mobile-menu'))}
+            onClick={() => {
+              const event = new CustomEvent('toggle-mobile-menu');
+              window.dispatchEvent(event);
+            }}
             className={`flex flex-col items-center justify-center min-h-[60px] flex-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50/80 rounded-xl transition-all duration-200 hover:scale-105`}
           >
             <MessageCircle size={26} className="mb-1" />

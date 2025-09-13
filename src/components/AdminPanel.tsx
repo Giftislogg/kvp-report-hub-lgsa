@@ -80,12 +80,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
   const [muteUsername, setMuteUsername] = useState('');
   const [muteReason, setMuteReason] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-const [announcementTitle, setAnnouncementTitle] = useState('');
-const [announcementContent, setAnnouncementContent] = useState('');
-const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
-const [selectedTab, setSelectedTab] = useState('reports');
-const [adminPassword, setAdminPassword] = useState('');
-const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementContent, setAnnouncementContent] = useState('');
+  const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
+  const [selectedTab, setSelectedTab] = useState('reports');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [inactiveUsers, setInactiveUsers] = useState<any[]>([]);
+  const [deleteAccountUsername, setDeleteAccountUsername] = useState('');
 
   useEffect(() => {
     fetchAllData();
@@ -612,6 +614,78 @@ const [reportDialogOpen, setReportDialogOpen] = useState(false);
     }
   };
 
+  // Fetch inactive users (inactive for 24+ hours)
+  const fetchInactiveUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, last_active, created_at')
+        .lt('last_active', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .order('last_active', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching inactive users:', error);
+        return;
+      }
+
+      setInactiveUsers(data || []);
+    } catch (error) {
+      console.error('Unexpected error fetching inactive users:', error);
+    }
+  };
+
+  // Delete account and all associated data
+  const deleteUserAccount = async () => {
+    if (!deleteAccountUsername.trim()) {
+      toast.error("Please enter a username");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${deleteAccountUsername} and ALL their data? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // Delete in order to respect foreign key constraints
+      const username = deleteAccountUsername.trim();
+      
+      // Delete from all tables that reference the user
+      await Promise.all([
+        supabase.from('posts').delete().eq('author_name', username),
+        supabase.from('post_likes').delete().eq('user_name', username),
+        supabase.from('post_dislikes').delete().eq('user_name', username),
+        supabase.from('public_chat').delete().eq('sender_name', username),
+        supabase.from('private_chats').delete().or(`sender_name.eq.${username},receiver_name.eq.${username}`),
+        supabase.from('admin_messages').delete().eq('guest_name', username),
+        supabase.from('reports').delete().eq('guest_name', username),
+        supabase.from('friends').delete().or(`user1.eq.${username},user2.eq.${username}`),
+        supabase.from('notifications').delete().or(`from_user.eq.${username},to_user.eq.${username}`),
+        supabase.from('muted_users').delete().eq('username', username),
+        supabase.from('user_badges').delete().eq('user_name', username),
+        supabase.from('active_chats').delete().or(`user1.eq.${username},user2.eq.${username}`)
+      ]);
+
+      // Finally delete the profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('username', username);
+
+      if (profileError) {
+        console.error('Error deleting profile:', profileError);
+        toast.error("Failed to delete user profile");
+        return;
+      }
+
+      toast.success(`Account ${username} and all associated data has been deleted`);
+      setDeleteAccountUsername('');
+      fetchAllData(); // Refresh all data
+    } catch (error) {
+      console.error('Error deleting user account:', error);
+      toast.error("Failed to delete user account");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-6 pb-20">
@@ -706,6 +780,22 @@ const [reportDialogOpen, setReportDialogOpen] = useState(false);
             >
               <UserX className="w-6 h-6" />
               <span className="font-semibold">Mute Users</span>
+            </Button>
+            
+            <Button 
+              onClick={() => setSelectedTab("inactive-users")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white border-0 shadow-lg"
+            >
+              <Users className="w-6 h-6" />
+              <span className="font-semibold">Inactive Users</span>
+            </Button>
+            
+            <Button 
+              onClick={() => setSelectedTab("delete-accounts")}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 shadow-lg"
+            >
+              <Trash2 className="w-6 h-6" />
+              <span className="font-semibold">Delete Accounts</span>
             </Button>
           </div>
 
@@ -803,6 +893,95 @@ const [reportDialogOpen, setReportDialogOpen] = useState(false);
               </div>
             )}
 
+            {selectedTab === "inactive-users" && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-bold text-gray-900">Inactive Users (24+ hours)</h3>
+                  <Button 
+                    onClick={fetchInactiveUsers}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Users className="w-4 h-4" />
+                    Refresh List
+                  </Button>
+                </div>
+                
+                <div className="grid gap-4 max-h-96 overflow-y-auto">
+                  {inactiveUsers.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-6 text-center">
+                        <Users className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                        <p className="text-gray-600">No inactive users found or list not loaded yet.</p>
+                        <p className="text-sm text-gray-500 mt-2">Click "Refresh List" to load inactive users.</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    inactiveUsers.map((user, index) => (
+                      <Card key={index} className="border-l-4 border-l-yellow-500">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-semibold text-gray-900">{user.username}</h4>
+                              <p className="text-sm text-gray-600">
+                                Last active: {new Date(user.last_active).toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Account created: {new Date(user.created_at).toLocaleString()}
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                              Inactive
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {selectedTab === "delete-accounts" && (
+              <div className="space-y-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Delete User Account</h3>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center">
+                    <Trash2 className="w-5 h-5 text-red-600 mr-2" />
+                    <h4 className="font-semibold text-red-800">⚠️ Warning: Permanent Deletion</h4>
+                  </div>
+                  <p className="text-red-700 mt-2 text-sm">
+                    This will permanently delete the user and ALL associated data including:
+                    posts, messages, reports, friendships, notifications, and profile information.
+                    This action cannot be undone.
+                  </p>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Username to Delete
+                    </label>
+                    <Input
+                      value={deleteAccountUsername}
+                      onChange={(e) => setDeleteAccountUsername(e.target.value)}
+                      placeholder="Enter username to delete"
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <Button 
+                    onClick={deleteUserAccount}
+                    className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white"
+                    disabled={!deleteAccountUsername.trim()}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Account & All Data
+                  </Button>
+                </div>
+              </div>
+            )}
+
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
             <TabsList className="hidden">
               <TabsTrigger value="reports">Reports</TabsTrigger>
@@ -814,6 +993,8 @@ const [reportDialogOpen, setReportDialogOpen] = useState(false);
               <TabsTrigger value="announcements">Announcements</TabsTrigger>
               <TabsTrigger value="roles">Users & Roles</TabsTrigger>
               <TabsTrigger value="mute">Mute</TabsTrigger>
+              <TabsTrigger value="inactive-users">Inactive Users</TabsTrigger>
+              <TabsTrigger value="delete-accounts">Delete Accounts</TabsTrigger>
             </TabsList>
 
             <TabsContent value="reports" className="space-y-4">
