@@ -42,13 +42,27 @@ const FloatingSideNavButton: React.FC<FloatingSideNavButtonProps> = ({
           />
           
           {/* Side Navigation Panel */}
-          <div className="relative w-80 max-w-[85vw] h-full bg-white shadow-xl">
-            <SideNavigation
-              activeSection={currentPage}
-              onSectionChange={handleSectionChange}
-              username={username}
-              onClose={() => setIsOpen(false)}
-            />
+          <div className="relative w-80 max-w-[85vw] h-full bg-white shadow-xl overflow-hidden">
+            {/* Close button */}
+            <div className="absolute top-4 right-4 z-10">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsOpen(false)}
+                className="rounded-full w-8 h-8 p-0"
+              >
+                ×
+              </Button>
+            </div>
+            
+            <div className="h-full">
+              <SideNavigation
+                activeSection={currentPage}
+                onSectionChange={handleSectionChange}
+                username={username}
+                onClose={() => setIsOpen(false)}
+              />
+            </div>
           </div>
         </div>
       )}

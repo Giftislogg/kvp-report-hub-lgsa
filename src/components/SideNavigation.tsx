@@ -682,18 +682,7 @@ const handleSectionChange = (section: string) => {
     );
   };
 
-  return (
-    <>
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent side="left" className="w-80 p-0">
-          {renderNavigationContent()}
-        </SheetContent>
-      </Sheet>
-      <div className="hidden md:block">
-        {renderNavigationContent()}
-      </div>
-    </>
-  );
+  return renderNavigationContent();
 };
 
 export default SideNavigation;
