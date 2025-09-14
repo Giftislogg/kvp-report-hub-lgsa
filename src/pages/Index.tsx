@@ -10,6 +10,7 @@ import NotificationsPage from '@/components/NotificationsPage';
 import SettingsPage from '@/components/SettingsPage';
 import ModernAuthModal from '@/components/ModernAuthModal';
 import ProjectsSection from '@/components/ProjectsSection';
+import FloatingSideNavButton from '@/components/FloatingSideNavButton';
 import { toast } from "sonner";
 import FloatingAdminButton from '@/components/FloatingAdminButton';
 import { supabase } from "@/integrations/supabase/client";
@@ -65,7 +66,7 @@ const Index = () => {
     }
   };
 
-  const handleAuthSubmit = async (inputUsername: string, password?: string, isNewUser?: boolean, isGoogle?: boolean) => {
+  const handleAuthSubmit = async (inputUsername: string, password?: string, isNewUser?: boolean, isGoogle?: boolean, securityData?: any) => {
     try {
       // Handle Google login (no password required)
       if (isGoogle && !password) {
@@ -125,8 +126,13 @@ const Index = () => {
           return;
         }
 
-        // Store user credentials with unique key
-        const userData = { username: inputUsername, password };
+        // Store user credentials with unique key including security data
+        const userData = { 
+          username: inputUsername, 
+          password,
+          securityQuestion: securityData?.question,
+          securityAnswer: securityData?.answer
+        };
         localStorage.setItem(`user_${inputUsername}`, JSON.stringify(userData));
         localStorage.setItem('username', inputUsername);
         
@@ -245,8 +251,17 @@ const Index = () => {
           // Google auth implementation would go here
           toast.info("Google authentication will be available soon!");
         }}
+        onGuestExplore={() => {
+          setShowAuthModal(false);
+          toast.info("Exploring as guest - some features will be limited");
+        }}
       />
       {username && <FloatingAdminButton username={username} />}
+      <FloatingSideNavButton 
+        currentPage={currentPage}
+        onNavigate={handleNavigate}
+        username={username || undefined}
+      />
     </div>
   );
 };
