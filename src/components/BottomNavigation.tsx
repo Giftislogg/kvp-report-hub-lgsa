@@ -60,6 +60,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
           <Button
             variant="ghost"
             onClick={() => {
+              console.log('Menu button clicked'); // Debug log
               const event = new CustomEvent('open-side-navigation');
               window.dispatchEvent(event);
             }}

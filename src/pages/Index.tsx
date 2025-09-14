@@ -29,6 +29,9 @@ const Index = () => {
       setUsername(savedUsername);
       // Update last_active for guest accounts
       updateLastActive(savedUsername);
+    } else {
+      // Show auth modal immediately for new users
+      setShowAuthModal(true);
     }
 
     // Listen for mobile menu toggle event
@@ -42,7 +45,7 @@ const Index = () => {
     return () => {
       window.removeEventListener('toggle-mobile-menu', handleMobileMenuToggle);
     };
-  }, [username]);
+  }, []);
 
   // Function to update last_active in Supabase for guest tracking
   const updateLastActive = async (username: string) => {

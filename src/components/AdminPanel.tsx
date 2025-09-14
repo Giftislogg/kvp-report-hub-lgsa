@@ -855,7 +855,27 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
             </Button>
             
             <Button 
-              onClick={() => setSelectedTab("delete-accounts")}
+              onClick={() => { 
+                setSelectedTab("user-roles");
+                setTimeout(() => {
+                  const element = document.getElementById('admin-user-roles');
+                  if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }}
+              className="h-20 flex flex-col gap-2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white border-0 shadow-lg"
+            >
+              <CheckCircle className="w-6 h-6" />
+              <span className="font-semibold">User Roles</span>
+            </Button>
+            
+            <Button 
+              onClick={() => { 
+                setSelectedTab("delete-accounts");
+                setTimeout(() => {
+                  const element = document.getElementById('admin-delete-accounts');
+                  if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }}
               className="h-20 flex flex-col gap-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-0 shadow-lg"
             >
               <Trash2 className="w-6 h-6" />
@@ -961,40 +981,60 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
               <div id="admin-admin-access" className="space-y-6">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Admin Panel Access Control</h3>
                 
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Control Admin Panel Access</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex gap-4">
-                      <Input
-                        value={adminAccessUsername}
-                        onChange={(e) => setAdminAccessUsername(e.target.value)}
-                        placeholder="Username"
-                        className="flex-1"
-                      />
-                      <Select value={adminAccessAction} onValueChange={(value) => setAdminAccessAction(value as 'enable' | 'disable')}>
-                        <SelectTrigger className="w-40">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="enable">Enable</SelectItem>
-                          <SelectItem value="disable">Disable</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        onClick={toggleAdminAccess}
-                        className="bg-blue-600 hover:bg-blue-700"
-                        disabled={!adminAccessUsername.trim()}
-                      >
-                        {adminAccessAction === 'enable' ? 'Enable' : 'Disable'} Admin Access
-                      </Button>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      Control who can access the admin panel. Only users with staff badges can access admin features.
-                    </p>
-                  </CardContent>
-                </Card>
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Admin Access Management</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-amber-800 mb-2">Access Levels</h4>
+                        <div className="space-y-2 text-sm text-amber-700">
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-blue-600 text-white">Full Admin</Badge>
+                            <span>Complete admin panel access (Simson_Rodger level)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-green-600 text-white">Creator</Badge>
+                            <span>Limited to tutorials management only</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className="bg-gray-600 text-white">Disabled</Badge>
+                            <span>No admin panel access</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <Input
+                          value={adminAccessUsername}
+                          onChange={(e) => setAdminAccessUsername(e.target.value)}
+                          placeholder="Enter username"
+                          className="flex-1"
+                        />
+                        <Select value={adminAccessAction} onValueChange={(value) => setAdminAccessAction(value as 'enable' | 'disable')}>
+                          <SelectTrigger className="w-full sm:w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="enable">Enable Access</SelectItem>
+                            <SelectItem value="disable">Disable Access</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={toggleAdminAccess}
+                          className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                          disabled={!adminAccessUsername.trim()}
+                        >
+                          {adminAccessAction === 'enable' ? 'Enable' : 'Disable'} Access
+                        </Button>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Control admin panel access. Creators get limited access (tutorials only), full admins get complete access.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             )}
 
@@ -1087,6 +1127,75 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
               </div>
             )}
 
+            {selectedTab === "user-roles" && (
+              <div id="admin-user-roles" className="space-y-6">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">User Roles & Badges Management</h3>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Assign Roles & Badges to Users</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-blue-800 mb-2">Current Staff Member</h4>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-blue-600 text-white">Staff</Badge>
+                          <span className="font-semibold">Simson_Rodger</span>
+                        </div>
+                        <p className="text-sm text-blue-700 mt-1">Current active admin panel user</p>
+                      </div>
+                      
+                      {userSuggestions.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Users className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                          <p className="text-gray-600">No users found to assign roles</p>
+                          <p className="text-sm text-gray-500 mt-2">Users will appear here once they start using the platform</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {userSuggestions.map((u) => (
+                            <div key={u.username} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-3">
+                              <div>
+                                <p className="font-semibold">{u.username}</p>
+                                <p className="text-xs text-gray-500">{u.last_seen}</p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => toggleUserRole(u.username, 'staff')}
+                                  className="text-xs"
+                                >
+                                  Toggle Staff
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => toggleUserRole(u.username, 'verified')}
+                                  className="text-xs"
+                                >
+                                  Toggle Verified ✓
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => toggleUserRole(u.username, 'bot')}
+                                  className="text-xs"
+                                >
+                                  Toggle Bot
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
           <Tabs value={selectedTab} onValueChange={(value) => {
             setSelectedTab(value);
             // Auto scroll to content on mobile
@@ -1113,7 +1222,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
 
             <TabsContent value="reports" className="space-y-4">
               <h3 className="text-xl font-semibold">Reports Management</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
@@ -1122,61 +1231,63 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ skipPassword }) => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
                       {reports.map((report) => (
                         <div
                           key={report.id}
-                          className={`p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
+                          className={`p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
                             selectedReport?.id === report.id ? 'bg-muted border-primary' : ''
                           }`}
-onClick={() => { setSelectedReport(report); setReportDialogOpen(true); }}
+                          onClick={() => { setSelectedReport(report); setReportDialogOpen(true); }}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline">{report.type}</Badge>
-                              <span className="text-sm text-muted-foreground">
-                                by {report.guest_name}
-                              </span>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline" className="text-xs">{report.type}</Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  by {report.guest_name}
+                                </span>
+                              </div>
+                              <div className="flex gap-1 flex-wrap">
+                                {report.admin_response && (
+                                  <Badge className="bg-green-100 text-green-800 text-xs px-2 py-1">Responded</Badge>
+                                )}
+                                {report.status === 'closed' && (
+                                  <Badge className="bg-gray-100 text-gray-800 text-xs px-2 py-1">Closed</Badge>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex gap-1">
-                              {report.admin_response && (
-                                <Badge className="bg-green-100 text-green-800">Responded</Badge>
-                              )}
-                              {report.status === 'closed' && (
-                                <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
-                              )}
-                            </div>
-                          </div>
-                          <p className="text-sm truncate mb-2">{report.description}</p>
-                          <div className="flex justify-between items-center">
-                            <p className="text-xs text-muted-foreground">
-                              {formatTime(report.timestamp)}
-                            </p>
-                            <div className="flex gap-1">
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  closeReport(report.id);
-                                }}
-                                variant="outline"
-                                size="sm"
-                                className="text-xs px-2 py-1 h-auto"
-                              >
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Close
-                              </Button>
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteReport(report.id);
-                                }}
-                                variant="outline"
-                                size="sm"
-                                className="text-xs px-2 py-1 h-auto text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Delete
-                              </Button>
+                            <p className="text-sm line-clamp-2 break-words">{report.description}</p>
+                            <div className="flex justify-between items-center flex-wrap gap-2">
+                              <p className="text-xs text-muted-foreground">
+                                {formatTime(report.timestamp)}
+                              </p>
+                              <div className="flex gap-1">
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    closeReport(report.id);
+                                  }}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs px-2 py-1 h-auto"
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  <span className="hidden sm:inline">Close</span>
+                                </Button>
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteReport(report.id);
+                                  }}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs px-2 py-1 h-auto text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-3 h-3 mr-1" />
+                                  <span className="hidden sm:inline">Delete</span>
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
