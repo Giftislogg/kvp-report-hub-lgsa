@@ -14,6 +14,9 @@ import FloatingSideNavButton from '@/components/FloatingSideNavButton';
 import { toast } from "sonner";
 import FloatingAdminButton from '@/components/FloatingAdminButton';
 import { supabase } from "@/integrations/supabase/client";
+import AnnouncementsSection from '@/components/AnnouncementsSection';
+import TutorialsSection from '@/components/TutorialsSection';
+import GamesSection from '@/components/GamesSection';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState('home');
@@ -207,6 +210,12 @@ const Index = () => {
     switch (currentPage) {
       case 'home':
         return <HomePage onNavigate={handleNavigate} username={username || undefined} currentPage={currentPage} />;
+      case 'announcements':
+        return <AnnouncementsSection />;
+      case 'tutorials':
+        return <TutorialsSection />;
+      case 'games':
+        return <GamesSection />;
       case 'report':
         return <ReportForm guestName={username!} />;
       case 'public-chat':
