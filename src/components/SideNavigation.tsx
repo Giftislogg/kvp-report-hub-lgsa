@@ -74,14 +74,14 @@ const SideNavigation: React.FC<SideNavigationProps> = ({
   const [showReportsCenter, setShowReportsCenter] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-const navItems = [
-  { id: 'home', label: 'Home', icon: Home },
-  { id: 'announcements', label: 'Announcements', icon: Megaphone },
-  { id: 'tutorials', label: 'Videos', icon: BookOpen },
-  { id: 'games', label: 'Games', icon: Gamepad2, isNew: true },
-  { id: 'messages-friends', label: 'Messages & Friends', icon: MessageSquare },
-  { id: 'reports-center', label: 'Reports', icon: FileText },
-];
+  const navItems = [
+    { id: 'home', label: 'Home', icon: Home },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone },
+    { id: 'tutorials', label: 'Videos', icon: BookOpen },
+    { id: 'games', label: 'Games', icon: Gamepad2, isNew: true },
+    { id: 'messages-friends', label: 'Messages & Friends', icon: MessageSquare },
+    { id: 'reports-center', label: 'Reports', icon: FileText },
+  ];
 
   useEffect(() => {
     if (username) {
@@ -94,7 +94,6 @@ const navItems = [
       setLoading(false);
     }
 
-    // Listen for mobile menu toggle event
     const handleOpenSideNavigation = () => {
       setIsOpen(true);
     };
@@ -160,7 +159,6 @@ const navItems = [
         return;
       }
 
-      // Get unique users from posts
       const uniqueUsers = data?.reduce((acc: RegisteredUser[], post) => {
         if (!acc.find(user => user.author_name === post.author_name) && post.author_name !== username) {
           acc.push({
@@ -172,7 +170,7 @@ const navItems = [
         return acc;
       }, []) || [];
 
-      setRegisteredUsers(uniqueUsers.slice(0, 6)); // Show max 6 users
+      setRegisteredUsers(uniqueUsers.slice(0, 6));
     } catch (error) {
       console.error('Unexpected error:', error);
     } finally {
@@ -184,7 +182,6 @@ const navItems = [
     if (!username) return;
 
     try {
-      // Fetch accepted friend relationships from friends table
       const { data: friendships, error } = await supabase
         .from('friends')
         .select('user1, user2')
@@ -196,12 +193,10 @@ const navItems = [
         return;
       }
 
-      // Extract friend names
       const friendNames = friendships?.map(friendship => 
         friendship.user1 === username ? friendship.user2 : friendship.user1
       ) || [];
 
-      // Create friend objects with mock status
       const friendsList = friendNames.map((name, index) => ({
         id: `friend-${index}`,
         name,
@@ -238,19 +233,10 @@ const navItems = [
     }
   };
 
-const handleSectionChange = (section: string) => {
-  if (section === 'messages-friends') {
-    setShowMessagesAndFriends(true);
-    return;
-  }
-  if (section === 'reports-center') {
-    setShowReportsCenter(true);
-    return;
-  }
-  onSectionChange(section);
-  setIsOpen(false); // Close mobile menu
-  if (onClose) onClose();
-};
+  const handleSectionChange = (section: string) => {
+    onSectionChange(section);
+    if (onClose) onClose();
+  };
 
   const handleAddFriend = async (friendName: string) => {
     if (!username) {
@@ -259,7 +245,6 @@ const handleSectionChange = (section: string) => {
     }
 
     try {
-      // Check if they're already friends
       const { data: existingFriendship } = await supabase
         .from('friends')
         .select('*')
@@ -270,7 +255,6 @@ const handleSectionChange = (section: string) => {
         return;
       }
 
-      // Check for existing notifications
       const { data: existingNotifications } = await supabase
         .from('notifications')
         .select('*')
@@ -282,7 +266,6 @@ const handleSectionChange = (section: string) => {
         return;
       }
 
-      // Insert friend request notification
       const { error } = await supabase
         .from('notifications')
         .insert({
@@ -300,7 +283,7 @@ const handleSectionChange = (section: string) => {
       }
 
       toast.success(`Friend request sent to ${friendName}`);
-      fetchRegisteredUsers(); // Refresh the list
+      fetchRegisteredUsers();
     } catch (error) {
       console.error('Unexpected error:', error);
       toast.error('Failed to send friend request');
@@ -309,7 +292,6 @@ const handleSectionChange = (section: string) => {
 
   const handleAcceptFriend = async (requestId: string, fromUser: string) => {
     try {
-      // Mark the request as read
       const { error: updateError } = await supabase
         .from('notifications')
         .update({ read: true })
@@ -320,7 +302,6 @@ const handleSectionChange = (section: string) => {
         return;
       }
 
-      // Create actual friendship in friends table
       const { error: friendError } = await supabase
         .from('friends')
         .insert({
@@ -334,7 +315,6 @@ const handleSectionChange = (section: string) => {
         return;
       }
 
-      // Create friend accepted notification
       const { error: insertError } = await supabase
         .from('notifications')
         .insert({
@@ -414,7 +394,6 @@ const handleSectionChange = (section: string) => {
     if (!username) {
       return (
         <div className="h-full overflow-y-auto bg-white p-4 space-y-4">
-          {/* Main Navigation */}
           <div className="space-y-2">
             {navItems.slice(0, 4).map((item) => {
               const Icon = item.icon;
@@ -457,7 +436,6 @@ const handleSectionChange = (section: string) => {
 
     return (
       <div className="h-full overflow-y-auto bg-white p-4 space-y-4">
-        {/* Main Navigation */}
         <div className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -487,7 +465,6 @@ const handleSectionChange = (section: string) => {
           })}
         </div>
 
-        {/* Reports & Admin Messages */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -529,7 +506,6 @@ const handleSectionChange = (section: string) => {
           </CardContent>
         </Card>
 
-        {/* Friend Requests */}
         {friendRequests.length > 0 && (
           <Card>
             <CardHeader className="pb-2">
@@ -573,7 +549,6 @@ const handleSectionChange = (section: string) => {
           </Card>
         )}
 
-        {/* Search Friends */}
         {friends.length > 0 && (
           <Card>
             <CardContent className="p-3">
@@ -590,7 +565,6 @@ const handleSectionChange = (section: string) => {
           </Card>
         )}
 
-        {/* Friends List */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
@@ -637,7 +611,6 @@ const handleSectionChange = (section: string) => {
           </CardContent>
         </Card>
 
-        {/* Suggested Friends Section */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
